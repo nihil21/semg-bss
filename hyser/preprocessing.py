@@ -58,6 +58,6 @@ def whiten_signal(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     eps = 1e-10
     d = np.diag(1. / (eig_vals + eps)**0.5)
     white_mtx = eig_vecs @ d @ eig_vecs.T
-    x_white = white_mtx @ x
+    x_white = white_mtx @ x_center
 
     return x_white, white_mtx

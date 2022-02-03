@@ -127,6 +127,7 @@ def _ica_def(
         g: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]],
         max_iter: int,
         threshold: float,
+        prng: np.random.Generator,
         verbose: bool,
 ) -> np.ndarray:
     """FastICA subroutine implementing deflation strategy.
@@ -143,6 +144,8 @@ def _ica_def(
         Maximum number of iterations.
     threshold: float
         Threshold for FastICA convergence.
+    prng: np.random.Generator
+        Pseudo-Random Number Generator.
     verbose: bool
         Whether to log information or not.
 
@@ -165,7 +168,7 @@ def _ica_def(
             print(f"Component {i + 1}/{n_components}", end="", flush=True)
 
         # Initialize i-th separation vector
-        b_i = np.random.randn(n_channels, 1)
+        b_i = prng.standard_normal(size=(n_channels, 1))
         b_i /= np.linalg.norm(b_i)
 
         # Iterate until convergence or maxIter are reached
@@ -206,6 +209,7 @@ def _ica_par(
         g: Callable[[np.ndarray], Tuple[np.ndarray, np.ndarray]],
         max_iter: int,
         threshold: float,
+        prng: np.random.Generator,
         verbose: bool,
 ) -> np.ndarray:
     """FastICA subroutine implementing parallel strategy.
@@ -222,6 +226,8 @@ def _ica_par(
         Maximum number of iterations.
     threshold: float
         Threshold for FastICA convergence.
+    prng: np.random.Generator
+        Pseudo-Random Number Generator.
     verbose: bool
         Whether to log information or not.
 
@@ -234,7 +240,7 @@ def _ica_par(
     n_channels, n_samples = x.shape
 
     # Initialize separation matrix randomly and decorrelate
-    b = np.random.randn(n_channels, n_components)
+    b = prng.standard_normal(size=(n_channels, n_components))
     b = _symmetric_decorrelation(b)
 
     start = time.time()
@@ -281,6 +287,7 @@ def fast_ica(
         g_func: str = "logcosh",
         max_iter: int = 100,
         threshold: float = 1e-4,
+        prng: Optional[np.random.Generator] = None,
         verbose: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """FastICA implementation.
@@ -299,6 +306,8 @@ def fast_ica(
         Maximum number of iterations.
     threshold: float, default=1e-4
         Threshold for FastICA convergence.
+    prng: Optional[np.random.Generator], default=None
+        Pseudo-Random Number Generator.
     verbose: bool, default=False
         Whether to log information or not.
 
@@ -326,7 +335,8 @@ def fast_ica(
         "g": g_dict[g_func],
         "max_iter": max_iter,
         "threshold": threshold,
-        "verbose": verbose,
+        "prng": prng if prng is not None else np.random.default_rng(),
+        "verbose": verbose
     }
 
     # Compute separation matrix
