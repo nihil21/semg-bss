@@ -1,2 +1,1 @@
-# hyser-decomposition
-sEMG decomposition of Hyser dataset
+# Decomposition of sEMG signals via Blind Source Separation

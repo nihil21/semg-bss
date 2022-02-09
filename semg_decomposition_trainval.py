@@ -27,6 +27,8 @@ def main():
     ap.add_argument("--ica_th", default=1e-4, type=float, help="Threshold for ICA")
     ap.add_argument("--sil_th", default=0.6, type=float, help="Threshold for SIL")
     ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG.")
+    ap.add_argument("--train_size", default=100, type=int, help="Size of the training set (in ms).")
+
     args = vars(ap.parse_args())
 
     # Read input arguments
@@ -43,6 +45,7 @@ def main():
     ica_th = args["ica_th"]
     sil_th = args["sil_th"]
     seed = args["seed"]
+    train_size = args["train_size"]
 
     # Check input
     assert subject in range(1, 21), "Subject id must be in range [1, 20]."
@@ -65,14 +68,34 @@ def main():
     # 1. Load data
     sub_emg = semg_bss.load_1dof(DATA_DIR, subject, session)
     emg = sub_emg[finger][trial][128 * (muscle - 1):128 * muscle]  # load record for given finger, sample and muscle
+    n_samples = emg.shape[1]
+    emg_sep = np.zeros(shape=(n_comp, n_samples), dtype=float)
+
+    # Cut point between training and validation set
+    cut = FS_EMG * train_size // 1000
+
+    start = 0
+    end = cut
 
     # 2. Preprocessing (extension + whitening)
-    emg_white, white_mtx = semg_bss.whiten_signal(
-        semg_bss.extend_signal(emg, r)
-    )
+    emg_ext = semg_bss.extend_signal(emg, r)
+    emg_white, white_mtx = semg_bss.whiten_signal(emg_ext[:, start:end])
 
     # 3. FastICA
-    emg_sep, sep_mtx = semg_bss.fast_ica(emg_white, n_comp, strategy, g_func, max_iter, ica_th, prng, verbose=True)
+    cur_emg_sep, sep_mtx = semg_bss.fast_ica(emg_white, n_comp, strategy, g_func, max_iter, ica_th, prng, verbose=True)
+    emg_sep[:, start:end] = cur_emg_sep
+
+    start = end
+    end = n_samples
+
+    # 2b. Preprocessing (extension + whitening) with precomputed whitening matrix
+    emg_mean = np.mean(emg_ext[:, start:end], axis=1, keepdims=True)
+    emg_center = emg_ext[:, start:end] - emg_mean
+    emg_white = white_mtx @ emg_center
+
+    # 3b. FastICA with precomputed weight matrix
+    cur_emg_sep = sep_mtx.T @ emg_white
+    emg_sep[:, start:end] = cur_emg_sep
 
     # 4. Spike detection
     spike_train = semg_bss.spike_detection(emg_sep, sil_th, seed=seed, verbose=True)
@@ -92,7 +115,7 @@ def main():
 
     emg_sep_valid = emg_sep[sil > sil_th]
     spike_train_valid = spike_train[sil > sil_th]
-    semg_bss.plot_signals(emg_sep_valid[:25], spike_train_valid[:25], FS_EMG, n_cols=2, fig_size=(50, 70))
+    semg_bss.plot_signals(emg_sep_valid[:25], spike_train_valid[:25], FS_EMG, n_cols=3, fig_size=(50, 70))
 
 
 if __name__ == "__main__":

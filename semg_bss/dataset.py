@@ -1,5 +1,6 @@
 import os
 import time
+from math import ceil
 from typing import Dict
 
 import numpy as np
@@ -95,19 +96,15 @@ def load_mvc(
     path = os.path.join(root, "mvc_dataset", f"subject{subject:02d}_session{session}")
     data = {}
     start = time.time()
-    for i in range(1, 10):
+    for i in range(1, 11):
         direction = "extension" if i % 2 == 0 else "flexion"
 
         if verbose:
             print("\r", end="")
-            print(f"Loading trial {i}/10", end="", flush=True)
+            print(f"Loading sample {i}/10", end="", flush=True)
 
-        finger_data = {}
-        for sample in range(1, 4):
-            signal, _ = wfdb.rdsamp(os.path.join(path, f"mvc_{sig_type}_finger{i}_sample{sample}"))
-            finger_data[sample] = signal.T
-
-        data[finger] = finger_data
+        signal, _ = wfdb.rdsamp(os.path.join(path, f"mvc_{sig_type}_finger{ceil(i / 2)}_{direction}"))
+        data[i] = signal.T
 
     if verbose:
         elapsed = time.time() - start

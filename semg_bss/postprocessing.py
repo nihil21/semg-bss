@@ -4,10 +4,12 @@ from typing import Optional
 import numpy as np
 from scipy.signal import find_peaks
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_samples
 
 
 def spike_detection(
         emg: np.ndarray,
+        threshold: float = 0.6,
         seed: Optional[int] = None,
         verbose: bool = False
 ) -> np.ndarray:
@@ -17,6 +19,8 @@ def spike_detection(
     ----------
     emg: np.ndarray
         Input sEMG signal with shape (n_channels, n_samples).
+    threshold: float, default=0.6
+        Threshold on the silhouette index for considering a spike valid.
     seed: Optional[int], default=None
         Seed for the Pseudo-Random Number Generator.
     verbose: bool, default=False
@@ -44,9 +48,11 @@ def spike_detection(
         kmeans.fit(sig_sq[peaks].reshape(-1, 1))
         idx = kmeans.labels_
         c = kmeans.cluster_centers_
+        # Compute silhouette
+        # sil_ch = silhouette_samples(sig_sq[peaks].reshape(-1, 1), idx, metric="sqeuclidean")
         # Consider only high peaks (i.e. cluster with highest centroid)
         high_cluster_idx = np.argmax(c)
-        spike_loc = peaks[idx == high_cluster_idx]
+        spike_loc = peaks[(idx == high_cluster_idx)]  # ] & (sil_ch > threshold)]
         # Create spike train
         spike_train[i, spike_loc] = 1
 

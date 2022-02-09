@@ -1,12 +1,13 @@
 import argparse
 import time
 
-import hyser
 import numpy as np
+from sklearnex import patch_sklearn
 
+import semg_bss
 
 PATH_DATA = "/data/physionet.org/files/hd-semg/1.0.0/"
-SAMP_FREQ = 2048
+FS_EMG = 2048
 
 
 def main():
@@ -19,6 +20,7 @@ def main():
     ap.add_argument("--max_iter", default=100, type=int, help="Maximum number of iterations")
     ap.add_argument("--ica_th", default=1e-4, type=float, help="Threshold for ICA")
     ap.add_argument("--sil_th", default=0.6, type=float, help="Threshold for SIL")
+    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG.")
     args = vars(ap.parse_args())
 
     # Read input arguments
@@ -29,6 +31,7 @@ def main():
     max_iter = args["max_iter"]
     ica_th = args["ica_th"]
     sil_th = args["sil_th"]
+    seed = args["seed"]
 
     # Check input
     assert r >= 0, "Extension factor must be non-negative."
@@ -37,6 +40,12 @@ def main():
     assert g_func in ["logcosh", "exp", "cube"], "G function must be either \"logcosh\", \"exp\" or \"cube\"."
     assert max_iter > 0, "Number of maximum iterations must be positive."
 
+    # Patch Scikit-learn
+    patch_sklearn()
+
+    # Set random number generator
+    prng = np.random.default_rng(seed)
+
     # Iterate over subjects
     for subject in range(1, 21):
         # Iterate over sessions
@@ -44,7 +53,7 @@ def main():
             # 0. Load data
             print("Loading data...\t\t", end="", flush=True)
             start = time.time()
-            sub_emg = hyser.load_1dof(PATH_DATA, subject, session)
+            sub_emg = semg_bss.load_1dof(PATH_DATA, subject, session)
             stop = time.time()
             print(f"Done [elapsed: {stop - start:.2f} s]")
             for finger in [1, 2, 3, 4, 5]:
@@ -53,17 +62,37 @@ def main():
                         # Load record for given finger, sample and muscle
                         emg = sub_emg[finger][sample][128 * (muscle - 1):128 * muscle]
                         # 1. Preprocessing (extension + whitening)
-                        start = time.time()
-                        print("Preprocessing...\t", end="", flush=True)
-                        emg_white, white_mtx = hyser.preprocessing(emg, r)
-                        stop = time.time()
-                        print(f"Done [elapsed: {stop - start:.2f} s]")
+                        emg_white, white_mtx = semg_bss.whiten_signal(
+                            semg_bss.extend_signal(emg, r)
+                        )
                         # 2. FastICA
-                        start = time.time()
-                        print("FastICA...", end="\t", flush=True)
-                        emg_sep, sep_mtx = hyser.fast_ica(emg_white, n_comp, strategy, g_func, max_iter, ica_th)
-                        stop = time.time()
-                        print(f"Done [elapsed: {stop - start:.2f} s]")
+                        emg_sep, sep_mtx = semg_bss.fast_ica(
+                            emg_white,
+                            n_comp,
+                            strategy,
+                            g_func,
+                            max_iter,
+                            ica_th,
+                            prng,
+                            verbose=True
+                        )
+                        # 4. Spike detection
+                        spike_train = semg_bss.spike_detection(
+                            emg_sep,
+                            sil_th,
+                            seed=seed,
+                            verbose=True
+                        )
+                        # 5. MU duplicates removal
+                        valid_index = semg_bss.replicas_removal(spike_train, emg_sep, FS_EMG)
+                        spike_train = spike_train[valid_index]
+                        emg_sep = emg_sep[valid_index]
+                        # 6. Compute silhouette
+                        sil = semg_bss.silhouette(emg_sep, FS_EMG, seed=seed, verbose=True)
+                        n_mu = sil[sil > sil_th].shape[0]
+                        avg_sil = sil[sil > sil_th].mean()
+                        emg_sep_valid = emg_sep[sil > sil_th]
+                        spike_train_valid = spike_train[sil > sil_th]
 
 
 if __name__ == "__main__":
