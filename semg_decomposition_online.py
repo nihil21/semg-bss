@@ -2,7 +2,6 @@ import argparse
 from math import ceil
 
 import numpy as np
-from matplotlib import pyplot as plt
 from scipy import signal
 from sklearnex import patch_sklearn
 
@@ -41,8 +40,9 @@ def main():
     ap.add_argument("--max_iter", default=100, type=int, help="Maximum number of iterations")
     ap.add_argument("--ica_th", default=1e-4, type=float, help="Threshold for ICA")
     ap.add_argument("--sil_th", default=0.6, type=float, help="Threshold for SIL")
-    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG.")
-    ap.add_argument("--mb_size", default=100, type=int, help="Size of the mini-batch (in ms).")
+    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG")
+    ap.add_argument("--mb_size", default=100, type=int, help="Size of the mini-batch (in ms)")
+    ap.add_argument("--offline", default=False, action="store_true", help="Use classic offline algorithm")
 
     args = vars(ap.parse_args())
 
@@ -61,6 +61,7 @@ def main():
     sil_th = args["sil_th"]
     seed = args["seed"]
     mb_size = args["mb_size"]
+    offline = args["offline"]
 
     # Check input
     assert subject in range(1, 21), "Subject id must be in range [1, 20]."
@@ -93,10 +94,10 @@ def main():
         square_wave(t, amp=1, freq=0.5, phase=0),
         sawtooth_wave(t, amp=0.5, freq=0.7, phase=-np.pi)
     ])
-    # s += 0.2 * np.random.normal(size=s.shape)  # noise
+    s += 0.2 * np.random.normal(size=s.shape)  # noise
     std = s.std(axis=1)
     s1 = (s.T / std).T
-    semg_bss.plot_signal(s1, FS_EMG)
+    semg_bss.plot_signal(s1, FS_EMG)  # , fig_size=(40, 20))
 
     # Mixing matrix A
     a = np.array([[1, 1, 1], [0.5, 2, 1], [1.5, 1, 2]])  # Mixing matrix
@@ -108,24 +109,64 @@ def main():
     emg_sep = np.zeros(shape=(n_comp, n_samples), dtype=float)
 
     # Extend signal
-    emg_ext = semg_bss.extend_signal(emg, r)
+    emg_ext = semg_bss.preprocessing.extend_signal(emg, r)
 
     # Prepare mini-batches with 75% overlap
     overlap = 3 * mb_size // 4
     sig_len = 1000 * n_samples // FS_EMG  # ms
     n_steps = ceil((sig_len - overlap) / (mb_size - overlap))
-    mb_samples = FS_EMG * mb_size // 1000
+    mb_samples = FS_EMG * mb_size // 1000  # number of samples
     no_samples = FS_EMG * (mb_size - overlap) // 1000  # number of non-overlapping samples
+    ov_samples = FS_EMG * overlap // 1000  # number of overlapping samples
+
+    emg_sep_prev = None
+    gigo_fail_count = 0
+    perm_fail_count = 0
     # Iterate over mini-batch steps
     for i in range(n_steps):
         print(f"{i + 1}/{n_steps}")
         start = i * no_samples
         end = n_samples if i == n_steps - 1 else start + mb_samples
 
-        # 2. Garbage detection
-        if not(semg_bss.garbage_detection(emg_ext[:, start:end], 2)):
+        if not offline:
+            # 2. Garbage detection
+            if not(semg_bss.online.garbage_detection(emg_ext[:, start:end], 5)):
+                # 3. Whitening
+                emg_white, white_mtx = semg_bss.preprocessing.whiten_signal(emg_ext[:, start:end])
+
+                # 4. FastICA
+                emg_sep_cur, sep_mtx = semg_bss.fast_ica(
+                    emg_white,
+                    n_comp,
+                    strategy,
+                    g_func,
+                    max_iter,
+                    ica_th,
+                    prng,
+                    verbose=True
+                )
+
+                if emg_sep_prev is not None:
+                    # 5. Permutation matrix
+                    perm_mtx = semg_bss.online.permutation(emg_sep_cur[:, :ov_samples], emg_sep_prev[:, -ov_samples:])
+                    if perm_mtx is not None:
+                        emg_sep_cur = perm_mtx.T @ emg_sep_cur
+                    else:
+                        perm_fail_count += 1
+
+                if i == 0:
+                    # Save whole data
+                    emg_sep[:, start:end] = emg_sep_cur
+                else:
+                    # Save only non-overlapping data
+                    emg_sep[:, start + mb_samples - no_samples:end] = emg_sep_cur[:, mb_samples - no_samples:]
+                # Keep track of previous ICs
+                emg_sep_prev = emg_sep_cur
+            else:
+                gigo_fail_count += 1
+        else:
             # 3. Whitening
-            emg_white, white_mtx = semg_bss.whiten_signal(emg_ext[:, start:end])
+            emg_white, white_mtx = semg_bss.preprocessing.whiten_signal(emg_ext[:, start:end])
 
             # 4. FastICA
             emg_sep_cur, sep_mtx = semg_bss.fast_ica(
@@ -139,9 +180,17 @@ def main():
                 verbose=True
             )
 
-        # Save only non-overlapping data
-        emg_sep[:, start + mb_samples - no_samples:end] = emg_sep_cur[:, mb_samples - no_samples:]
-    semg_bss.plot_signal(emg_sep, FS_EMG)
+            if i == 0:
+                # Save whole data
+                emg_sep[:, start:end] = emg_sep_cur
+            else:
+                # Save only non-overlapping data
+                emg_sep[:, start + mb_samples - no_samples:end] = emg_sep_cur[:, mb_samples - no_samples:]
+
+    print("GIGO fails:", gigo_fail_count)
+    print("Permutation fails:", perm_fail_count)
+
+    semg_bss.plot_signal(emg_sep, FS_EMG)  # , fig_size=(40, 20))
 
 
 if __name__ == "__main__":

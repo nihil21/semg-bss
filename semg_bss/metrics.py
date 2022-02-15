@@ -2,7 +2,7 @@ import time
 from typing import Optional
 
 import numpy as np
-from scipy.signal import butter, find_peaks, sosfilt
+from scipy.signal import butter, find_peaks, sosfiltfilt
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_samples
 
@@ -47,7 +47,7 @@ def silhouette(
             print(f"Channel {i + 1}/{emg.shape[0]}", end="", flush=True)
 
         # Filter signal
-        emg[i, :] = sosfilt(sos, emg[i, :])
+        emg[i, :] = sosfiltfilt(sos, emg[i, :])
         # Find peaks of squared signal
         sig_sq = np.square(emg[i, :])
         peaks, _ = find_peaks(sig_sq)

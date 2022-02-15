@@ -32,6 +32,28 @@ def extend_signal(x: np.ndarray, r: int = 0) -> np.ndarray:
     return x_ext
 
 
+def center_signal(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Center sEMG signal.
+
+    Parameters
+    ----------
+    x: np.ndarray
+        sEMG data with shape (n_channels, n_samples).
+
+    Returns
+    -------
+    x_center: np.ndarray
+        Centered sEMG signal with shape (n_channels, n_samples).
+    x_mean: np.ndarray
+        Mean of the original signal.
+    """
+
+    x_mean = np.mean(x, axis=1, keepdims=True)
+    x_center = x - x_mean
+
+    return x_center, x_mean
+
+
 def whiten_signal(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Whiten sEMG signal.
 
@@ -48,16 +70,11 @@ def whiten_signal(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         Whitening matrix.
     """
 
-    # 1. Center signal
-    x_mean = np.mean(x, axis=1, keepdims=True)
-    x_center = x - x_mean
-
-    # 2. Whiten signal
-    cov_mtx = np.cov(x_center)
+    cov_mtx = np.cov(x)
     eig_vals, eig_vecs = np.linalg.eigh(cov_mtx)
     eps = 1e-10
     d = np.diag(1. / (eig_vals + eps)**0.5)
     white_mtx = eig_vecs @ d @ eig_vecs.T
-    x_white = white_mtx @ x_center
+    x_white = white_mtx @ x
 
     return x_white, white_mtx

@@ -1,4 +1,5 @@
 import time
+from math import floor
 from typing import Optional
 
 import numpy as np
@@ -147,7 +148,7 @@ def replicas_removal(
     rep = 3  # repeat 3 times
     for i in range(rep):
         for j in range(n_valid):  # iterate over valid channels
-            loc = np.nonzero(spike_train[valid_index_tmp[j], :] == 1)[0]  # get idx of spikes in current channel
+            loc = np.nonzero(spike_train[valid_index_tmp[j]] == 1)[0]  # get idx of spikes in current channel
             diff_loc = np.diff(loc)  # compute relative distance between spikes
             loc_mask = diff_loc < fs * 0.02  # create a boolean mask for distance based on threshold
             for k in range(len(loc_mask)):  # iterate over array of relative distances

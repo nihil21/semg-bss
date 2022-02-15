@@ -20,7 +20,7 @@ def main():
     ap.add_argument("--max_iter", default=100, type=int, help="Maximum number of iterations")
     ap.add_argument("--ica_th", default=1e-4, type=float, help="Threshold for ICA")
     ap.add_argument("--sil_th", default=0.6, type=float, help="Threshold for SIL")
-    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG.")
+    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG")
     args = vars(ap.parse_args())
 
     # Read input arguments
@@ -53,7 +53,7 @@ def main():
             # 0. Load data
             print("Loading data...\t\t", end="", flush=True)
             start = time.time()
-            sub_emg = semg_bss.load_1dof(PATH_DATA, subject, session)
+            sub_emg = semg_bss.hyser.load_1dof(PATH_DATA, subject, session)
             stop = time.time()
             print(f"Done [elapsed: {stop - start:.2f} s]")
             for finger in [1, 2, 3, 4, 5]:
@@ -62,9 +62,10 @@ def main():
                         # Load record for given finger, sample and muscle
                         emg = sub_emg[finger][sample][128 * (muscle - 1):128 * muscle]
                         # 1. Preprocessing (extension + whitening)
-                        emg_white, white_mtx = semg_bss.whiten_signal(
-                            semg_bss.extend_signal(emg, r)
-                        )
+                        emg_ext = semg_bss.preprocessing.extend_signal(emg, r)
+                        emg_center, _ = semg_bss.preprocessing.center_signal(emg_ext)
+                        emg_white, _ = semg_bss.preprocessing.whiten_signal(emg_center)
+
                         # 2. FastICA
                         emg_sep, sep_mtx = semg_bss.fast_ica(
                             emg_white,
@@ -77,18 +78,18 @@ def main():
                             verbose=True
                         )
                         # 4. Spike detection
-                        spike_train = semg_bss.spike_detection(
+                        spike_train = semg_bss.postprocessing.spike_detection(
                             emg_sep,
                             sil_th,
                             seed=seed,
                             verbose=True
                         )
                         # 5. MU duplicates removal
-                        valid_index = semg_bss.replicas_removal(spike_train, emg_sep, FS_EMG)
+                        valid_index = semg_bss.postprocessing.replicas_removal(spike_train, emg_sep, FS_EMG)
                         spike_train = spike_train[valid_index]
                         emg_sep = emg_sep[valid_index]
                         # 6. Compute silhouette
-                        sil = semg_bss.silhouette(emg_sep, FS_EMG, seed=seed, verbose=True)
+                        sil = semg_bss.metrics.silhouette(emg_sep, FS_EMG, seed=seed, verbose=True)
                         n_mu = sil[sil > sil_th].shape[0]
                         avg_sil = sil[sil > sil_th].mean()
                         emg_sep_valid = emg_sep[sil > sil_th]

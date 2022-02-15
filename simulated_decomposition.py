@@ -1,24 +1,20 @@
 import argparse
 
 import numpy as np
+from scipy.signal import butter, sosfiltfilt
+from scipy.stats import linregress
 from sklearnex import patch_sklearn
 
 import semg_bss
 
-DATA_DIR = "/home/nihil/Scrivania/hyser_dataset"
-CACHE_DIR = "cache"
-
-FS_EMG = 2048
+DATA_DIR = "/home/nihil/Scrivania/simulated_dataset"
 
 
 def main():
     # Parse arguments
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subject", default=1, type=int, help="Subject id (in range [1, 20]")
-    ap.add_argument("--session", default=1, type=int, help="Session id (in {1, 2})")
-    ap.add_argument("--finger", default=1, type=int, help="Finger id (in {1, 2, 3, 4, 5})")
-    ap.add_argument("--trial", default=1, type=int, help="Trial id (in {1, 2, 3})")
-    ap.add_argument("--muscle", default=1, type=int, help="Muscle id (in {1, 2})")
+    ap.add_argument("--subject", default=0, type=int, help="Subject id (in range [0, 14]")
+    ap.add_argument("--mvc", default=10, type=int, help="MVC value (in {10, 30, 50 n})")
     ap.add_argument("-r", default=4, type=int, help="Extension factor")
     ap.add_argument("--n_comp", default=300, type=int, help="Number of components to extract")
     ap.add_argument("--strategy", default="deflation", type=str, help="FastICA strategy")
@@ -26,15 +22,12 @@ def main():
     ap.add_argument("--max_iter", default=100, type=int, help="Maximum number of iterations")
     ap.add_argument("--ica_th", default=1e-4, type=float, help="Threshold for ICA")
     ap.add_argument("--sil_th", default=0.6, type=float, help="Threshold for SIL")
-    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG.")
+    ap.add_argument("--seed", default=None, type=int, help="Seed for PRNG")
     args = vars(ap.parse_args())
 
     # Read input arguments
     subject = args["subject"]
-    session = args["session"]
-    finger = args["finger"]
-    trial = args["trial"]
-    muscle = args["muscle"]
+    mvc = args["mvc"]
     r = args["r"]
     n_comp = args["n_comp"]
     strategy = args["strategy"]
@@ -45,11 +38,8 @@ def main():
     seed = args["seed"]
 
     # Check input
-    assert subject in range(1, 21), "Subject id must be in range [1, 20]."
-    assert session in [1, 2], "Session id must be in {1, 2}."
-    assert finger in [1, 2, 3, 4, 5], "Finger id must be in {1, 2, 3, 4, 5}."
-    assert trial in [1, 2, 3], "Sample id must be in {1, 2, 3}."
-    assert muscle in [1, 2], "Muscle id must be in {1, 2}."
+    assert subject in range(15), "Subject id must be in range [0, 14]."
+    assert mvc in [10, 30, 50], "MVC value must be in {10, 30, 50}."
     assert r >= 0, "Extension factor must be non-negative."
     assert n_comp > 0, "Number of components must be positive."
     assert strategy in ["deflation", "parallel"], "FastICA strategy must be either \"deflation\" or \"parallel\"."
@@ -62,37 +52,38 @@ def main():
     # Set random number generator
     prng = np.random.default_rng(seed)
 
-    # 1. Load data
-    sub_emg = semg_bss.load_1dof(DATA_DIR, subject, session)
-    emg = sub_emg[finger][trial][128 * (muscle - 1):128 * muscle]  # load record for given finger, sample and muscle
+    # 1a. Load sEMG data
+    emg, gt_spikes, fs_emg = semg_bss.simulated.load_semg(DATA_DIR, subject, mvc)
+    semg_bss.plot_signal(emg[:50], fs_emg, n_cols=2, fig_size=(50, 70))
+    semg_bss.plot_signal(gt_spikes[:50], fs_emg, n_cols=2, fig_size=(50, 70))
 
     # 2. Preprocessing (extension + whitening)
-    emg_white, white_mtx = semg_bss.whiten_signal(
-        semg_bss.extend_signal(emg, r)
-    )
+    emg_ext = semg_bss.preprocessing.extend_signal(emg, r)
+    emg_center, _ = semg_bss.preprocessing.center_signal(emg_ext)
+    emg_white, _ = semg_bss.preprocessing.whiten_signal(emg_center)
 
     # 3. FastICA
     emg_sep, sep_mtx = semg_bss.fast_ica(emg_white, n_comp, strategy, g_func, max_iter, ica_th, prng, verbose=True)
 
     # 4. Spike detection
-    spike_train = semg_bss.spike_detection(emg_sep, sil_th, seed=seed, verbose=True)
+    spike_train = semg_bss.postprocessing.spike_detection(emg_sep, sil_th, seed=seed, verbose=True)
 
     # 5. MU duplicates removal
-    valid_index = semg_bss.replicas_removal(spike_train, emg_sep, FS_EMG)
-    spike_train = spike_train[valid_index]
-    emg_sep = emg_sep[valid_index]
-    print("N. components extracted:", spike_train.shape[0])
+    valid_idx = semg_bss.postprocessing.replicas_removal(spike_train, emg_sep, fs_emg)
+    spike_train = spike_train[valid_idx]
+    emg_sep = emg_sep[valid_idx]
+    n_mu = spike_train.shape[0]
+
+    print(f"{n_mu} MUs extracted after replicas removal.")
 
     # 6. Compute silhouette
-    sil = semg_bss.silhouette(emg_sep, FS_EMG, seed=seed, verbose=True)
+    sil = semg_bss.metrics.silhouette(emg_sep, fs_emg, seed=seed, verbose=True)
     n_mu = sil[sil > sil_th].shape[0]
     avg_sil = sil[sil > sil_th].mean()
 
     print(f"{n_mu} MUs extracted with an average silhouette score of {avg_sil:.4f}")
 
-    emg_sep_valid = emg_sep[sil > sil_th]
-    spike_train_valid = spike_train[sil > sil_th]
-    semg_bss.plot_signals(emg_sep_valid[:25], spike_train_valid[:25], FS_EMG, n_cols=2, fig_size=(50, 70))
+    semg_bss.plot_signals(emg_sep[:25], spike_train[:25], fs_emg, n_cols=3, fig_size=(50, 70))
 
 
 if __name__ == "__main__":
