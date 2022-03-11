@@ -652,7 +652,7 @@ class EmgSeparator:
                 # Compute SIL for every MU, and keep only the one with the highest SIL
                 sil_scores = [(dup_mu, self._compute_sil(si=sources[dup_mu])) for dup_mu in dup_mus]
                 mu_keep = max(sil_scores, key=lambda t: t[1])
-                logging.info(f"Keeping MU {mu_keep[0]} (SIL = {mu_keep[1]}:.3f).")
+                logging.info(f"Keeping MU {mu_keep[0]} (SIL = {mu_keep[1]:.3f}).")
                 # Mark duplicates
                 dup_mus.remove(mu_keep[0])
                 mus_to_remove.extend(dup_mus)

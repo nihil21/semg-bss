@@ -143,7 +143,7 @@ def plot_signal(
     fig.show()
 
 
-def raster_plot(f: pd.DataFrame, fig_size: tuple[int, int]):
+def raster_plot(f: pd.DataFrame, fig_size: tuple[int, int], neg_entropy: bool = False):
     """Plot a raster plot of the firing activity of a group of neurons.
 
     Parameters
@@ -152,10 +152,9 @@ def raster_plot(f: pd.DataFrame, fig_size: tuple[int, int]):
         A DataFrame with columns "MU index", "Firing time" and "Firing rate" describing the firing activity of neurons.
     fig_size: tuple[int, int]
         Size of figure.
+    neg_entropy: bool, default=False
+        Whether to represent the neg-entropy of each MU as color instead of the firing rate.
     """
-    # mu_idx = f["MU index"].unique()
-    # mapping = {idx: i for i, idx in enumerate(mu_idx)}
-    # f["Firing rate idx"] = f["MU index"].apply(lambda x: mapping[x])
     fig = px.scatter(
         f,
         x="Firing time",
