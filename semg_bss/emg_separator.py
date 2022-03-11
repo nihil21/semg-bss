@@ -9,8 +9,8 @@ from scipy.signal import find_peaks
 from .preprocessing import extend_signal, center_signal, whiten_signal
 
 
-def _tanh(x: np.ndarray):
-    """Tanh function.
+def _logcosh(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """LogCosh function.
 
     Parameters
     ----------
@@ -22,19 +22,23 @@ def _tanh(x: np.ndarray):
     gx: np.ndarray
         LogCosh output.
     gx_prime: np.ndarray
-        LogCosh derivative.
+        LogCosh first derivative.
+    gx_sec: np.ndarray
+        LogCosh second derivative.
     """
 
     alpha = 1.0
     # Compute G
-    gx = np.tanh(alpha * x)
+    gx = 1 / alpha * np.log(np.cosh(alpha * x))
     # Compute G'
-    gx_prime = alpha * (1 - gx ** 2)
+    gx_prime = np.tanh(alpha * x)
+    # Compute G''
+    gx_sec = alpha * (1 - gx_prime ** 2)
 
-    return gx, gx_prime
+    return gx, gx_prime, gx_sec
 
 
-def _exp(x: np.ndarray):
+def _exp(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Exp function.
 
     Parameters
@@ -50,17 +54,19 @@ def _exp(x: np.ndarray):
         Exp derivative.
     """
 
-    exp = np.exp(-x ** 2 / 2)
+    gx = -np.exp(-x ** 2 / 2)
     # Compute G
-    gx = x * exp
+
     # Compute G'
-    gx_prime = (1 - x ** 2) * exp
+    gx_prime = -x * gx
+    # Compute G''
+    gx_sec = (x ** 2 - 1) * gx
 
-    return gx, gx_prime
+    return gx, gx_prime, gx_sec
 
 
-def _cube(x: np.ndarray):
-    """Cubic function.
+def _skew(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Skewness function.
 
     Parameters
     ----------
@@ -76,11 +82,13 @@ def _cube(x: np.ndarray):
     """
 
     # Compute G
-    gx = x ** 3
+    gx = x ** 3 / 3
     # Compute G'
-    gx_prime = (3 * x ** 2)
+    gx_prime = x ** 2
+    # Compute G''
+    gx_sec = 2 * x
 
-    return gx, gx_prime
+    return gx, gx_prime, gx_sec
 
 
 class EmgSeparator:
@@ -94,7 +102,7 @@ class EmgSeparator:
         Sampling frequency of the signal.
     f_e: int, default=0
         Extension factor for the signal.
-    g_func: str, default="tanh"
+    g_func: str, default="logcosh"
         Contrast function for FastICA.
     conv_th: float, default=1e-4
         Threshold for convergence.
@@ -150,7 +158,7 @@ class EmgSeparator:
             max_comp: int,
             fs: float,
             f_e: int = 0,
-            g_func: str = "tanh",
+            g_func: str = "logcosh",
             conv_th: float = 1e-4,
             sil_th: float = 0.9,
             max_iter: int = 100,
@@ -160,15 +168,15 @@ class EmgSeparator:
     ):
         # Dictionary for contrast functions
         g_dict = {
-            "tanh": _tanh,
+            "logcosh": _logcosh,
             "exp": _exp,
-            "cube": _cube
+            "skew": _skew
         }
 
         # Parameter check
         assert max_comp > 0, "The maximum n. of components must be positive."
-        assert g_func in ["tanh", "exp", "cube"], \
-            f"Contrast function can be either \"tanh\", \"exp\" or \"cube\": the provided one was {g_func}."
+        assert g_func in ["logcosh", "exp", "skew"], \
+            f"Contrast function can be either \"logcosh\", \"exp\" or \"skew\": the provided one was {g_func}."
         assert conv_th > 0, "Convergence threshold must be positive."
         assert -1 < sil_th < 1, "SIL threshold must be in the ]-1, 1[ range."
         assert max_iter > 0, "The maximum n. of iterations must be positive."
@@ -290,6 +298,43 @@ class EmgSeparator:
 
         return firings
 
+    def project(self, emg: np.ndarray) -> np.ndarray:
+        """Given a raw EMG signal, compute the source MUAPTs.
+
+        Parameters
+        ----------
+        emg: np.ndarray
+            Raw sEMG signal with shape (n_channels, n_samples).
+
+        Returns
+        -------
+        muapts: np.ndarray
+            Source MUAPTs with shape (n_mu, n_samples).
+        """
+        assert self._is_fit,  "The instance must be trained first."
+        emg_ext = extend_signal(emg, self._f_e)
+        emg_center = center_signal(emg_ext)
+        emg_white, self._white_mtx = whiten_signal(emg_center)
+
+        return self._sep_mtx.T @ emg_white
+
+    def compute_negentropy(self, muapts) -> np.ndarray:
+        """Given a set of MUAPTs, compute their neg-entropy.
+
+        Parameters
+        ----------
+        muapts: np.ndarray
+            Source MUAPTs with shape (n_mu, n_samples).
+
+        Returns
+        -------
+        negentropy: np.ndarray
+            Neg-entropy value for each MU.
+        """
+        g_muapts, _, _ = self._g(muapts)
+        g_std, _, _ = self._g(self._prng.standard_normal(size=muapts.shape))
+        return np.square(np.mean(g_muapts, axis=1) - np.mean(g_std, axis=1))
+
     def reset(self) -> None:
         """Reset the internal state of the EmgSeparator."""
         self._is_fit = False
@@ -407,11 +452,11 @@ class EmgSeparator:
         converged = False
         while iter_idx < self._max_iter:
             # (n_channels,) @ (n_channels, n_samples) -> (n_samples,)
-            g_ws, g_ws_prime = self._g(np.dot(wi, emg_white))
+            _, g_ws_prime, g_ws_sec = self._g(np.dot(wi, emg_white))
             # (n_channels, n_samples) * (n_samples,) -> (n_channels, 1)
-            t1 = (emg_white * g_ws).mean(axis=-1)
+            t1 = (emg_white * g_ws_prime).mean(axis=-1)
             # E[(n_samples,)] * (n_channels, 1) -> (n_channels, 1)
-            t2 = g_ws_prime.mean() * wi
+            t2 = g_ws_sec.mean() * wi
             # Compute new separation vector
             wi_new = t1 - t2
             # Decorrelate and normalize
@@ -515,10 +560,10 @@ class EmgSeparator:
         sq_peaks = si_sq[peaks]
 
         # If threshold is provided, use it to identify spikes
-        #if threshold is not None:
-        #    logging.info(f"Using pre-computed threshold {threshold}")
-        #    spike_loc = peaks[sq_peaks > threshold]
-        #    return spike_loc, None, None
+        # if threshold is not None:
+        #     logging.info(f"Using pre-computed threshold {threshold}")
+        #     spike_loc = peaks[sq_peaks > threshold]
+        #     return spike_loc, None, None
 
         # Perform k-means with 2 clusters (high and small peaks)
         centroids, labels = kmeans2(sq_peaks.reshape(-1, 1), k=2, minit="++", seed=self._prng)
