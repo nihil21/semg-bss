@@ -111,3 +111,58 @@ def load_mvc(
         print(f"Data loaded in {elapsed:.2f} s")
 
     return np.stack(data)
+
+
+def load_ndof(
+        root: str,
+        subject: int,
+        session: int,
+        sig_type: str = "raw",
+        verbose: bool = False,
+) -> np.ndarray:
+    """Load data from the 1DoF subset.
+
+    Parameters
+    ----------
+    root: str
+        Path to Hyser dataset root folder.
+    subject: int
+        Subject id.
+    session: int
+        Session id.
+    sig_type: str, default="raw"
+        Signal type ("raw", "preprocess" or "force").
+    verbose: bool, default=False
+        Whether to log information or not.
+
+    Returns
+    -------
+    data: np.ndarray
+        Array containing sEMG signal for each finger and trial.
+    """
+
+    assert sig_type in ["raw", "preprocess", "force"], \
+        "The signal type must be either \"raw\", \"preprocess\" or \"force\"."
+
+    path = os.path.join(root, "ndof_dataset", f"subject{subject + 1:02d}_session{session + 1}")
+    data = []
+    start = time.time()
+    for i in range(1, 16):  # tasks
+
+        if verbose:
+            print("\r", end="")
+            print(f"Loading task {i}/15", end="", flush=True)
+
+        data_cur = []
+        for j in range(1, 3):  # trials
+            signal, _ = wfdb.rdsamp(os.path.join(path, f"ndof_{sig_type}_combination{i}_sample{j}"))
+            data_cur.append(signal.T)
+
+        data.append(np.stack(data_cur))
+
+    if verbose:
+        elapsed = time.time() - start
+        print("\r", end="")
+        print(f"Data loaded in {elapsed:.2f} s")
+
+    return np.stack(data)
