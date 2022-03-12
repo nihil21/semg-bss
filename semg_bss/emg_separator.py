@@ -143,13 +143,13 @@ class EmgSeparator:
         Minimum percentage of common firings for considering two MUs as duplicates.
     _prng: np.Generator, default=None
         Actual PRNG.
-    _white_mtx: np.ndarray
+    _white_mtx: np.ndarray | None
         Whitening matrix.
-    _sep_mtx: np.ndarray
+    _sep_mtx: np.ndarray | None
         Separation matrix.
-    _spike_th: np.ndarray
+    _spike_th: np.ndarray | None
         Threshold for spike/noise classification for each MU.
-    _n_mu: int
+    _n_mu: int | None
         Number of extracted MUs.
     """
 
@@ -634,13 +634,13 @@ class EmgSeparator:
         max_n_spikes = self._max_spike_freq * n_samples / self._fs
 
         # Step 1: obtain firing times and remove inactive MUs
-        sources = self._sep_mtx.T @ emg_white
-        n_comp, _ = sources.shape
+        muapts = self._sep_mtx.T @ emg_white
+        n_comp, _ = muapts.shape
         if self._is_fit:  # simplified postprocessing for already-trained model
             firings_tmp: list[dict[str, float]] = []
             for i in range(n_comp):
                 # Detect spikes with pre-computed threshold
-                spike_loc, _, _ = self._detect_spikes(si=sources[i], threshold=self._spike_th[i])
+                spike_loc, _, _ = self._detect_spikes(si=muapts[i], threshold=self._spike_th[i])
                 if min_n_spikes <= spike_loc.size <= max_n_spikes:
                     firings_tmp.extend([{"MU index": i, "Firing time": s / self._fs} for s in spike_loc])
             # Convert to Pandas DataFrame
@@ -648,12 +648,12 @@ class EmgSeparator:
 
         else:  # standard postprocessing
             firings_tmp: dict[int, np.ndarray] = {}
-            invalid_mus = []
-            spike_th = []
+            invalid_mus: list[int] = []
+            spike_th: list[float] = []
             valid_count = 0
             for i in range(n_comp):
                 # Detect spikes
-                spike_loc, _, spike_th_i = self._detect_spikes(si=sources[i])
+                spike_loc, _, spike_th_i = self._detect_spikes(si=muapts[i])
                 if min_n_spikes <= spike_loc.size <= max_n_spikes:
                     # Save firing time and spike detection threshold
                     firings_tmp[valid_count] = spike_loc / self._fs
@@ -666,12 +666,12 @@ class EmgSeparator:
 
             # Remove invalid MUs
             self._sep_mtx = np.delete(self._sep_mtx, invalid_mus, axis=1)
-            sources = np.delete(sources, invalid_mus, axis=0)
+            muapts = np.delete(muapts, invalid_mus, axis=0)
 
             # Step 2: remove MUs delayed replicas
             cur_mu = 0
             mu_idx = list(firings_tmp.keys())
-            duplicate_mus = {}
+            duplicate_mus: dict[int, list[int]] = {}
             while cur_mu < len(mu_idx):
                 # Find index of replicas by checking synchronization
                 i = 1
@@ -689,13 +689,13 @@ class EmgSeparator:
                 cur_mu += 1
 
             # Decide which duplicates to remove
-            mus_to_remove = []
+            mus_to_remove: list[int] = []
             for main_mu, dup_mus in duplicate_mus.items():
                 # Unify duplicate MUs
                 dup_mus = [main_mu] + dup_mus
                 logging.info("Found group of duplicate MUs: " + ", ".join([f"{mu}" for mu in dup_mus]) + ".")
                 # Compute SIL for every MU, and keep only the one with the highest SIL
-                sil_scores = [(dup_mu, self._compute_sil(si=sources[dup_mu])) for dup_mu in dup_mus]
+                sil_scores = [(dup_mu, self._compute_sil(si=muapts[dup_mu])) for dup_mu in dup_mus]
                 mu_keep = max(sil_scores, key=lambda t: t[1])
                 logging.info(f"Keeping MU {mu_keep[0]} (SIL = {mu_keep[1]:.3f}).")
                 # Mark duplicates
@@ -703,6 +703,7 @@ class EmgSeparator:
                 mus_to_remove.extend(dup_mus)
             # Remove duplicates
             self._sep_mtx = np.delete(self._sep_mtx, mus_to_remove, axis=1)
+            muapts = np.delete(muapts, mus_to_remove, axis=0)
             for mu in mus_to_remove:
                 del firings_tmp[mu]
 
@@ -711,11 +712,14 @@ class EmgSeparator:
                 {"MU index": i, "Firing time": f} for i, f_list in enumerate(firings_tmp.values()) for f in f_list
             ])
 
-        # Compute firing rate and sort by it
+        # Compute firing rate and neg-entropy
         firings["Firing rate"] = firings.groupby(["MU index"]).transform(
             lambda x: x.count() / n_samples * self._fs
         )
-        firings = firings.sort_values(by=["Firing rate", "Firing time"], ascending=[False, True]).reset_index(drop=True)
+        neg_entropy = self.compute_negentropy(muapts)
+        firings["Neg-entropy"] = firings["MU index"].apply(
+            lambda mu: neg_entropy[mu]
+        )
 
         return firings
 
@@ -741,7 +745,7 @@ class EmgSeparator:
         in_sync: bool
             Whether the two MUAPTs are in sync or not.
         """
-        sync = []
+        sync: list[float] = []
         for firing_ref in firings_ref:
             fire_interval = firings_sec - firing_ref
             idx = np.flatnonzero((fire_interval >= -win_len) & (fire_interval <= win_len))
