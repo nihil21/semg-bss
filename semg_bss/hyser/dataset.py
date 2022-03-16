@@ -107,8 +107,9 @@ def load_mvc(
         root: str,
         subject: int,
         session: int,
-        sig_type: str = "raw",
-        verbose: bool = False,
+        task: int,
+        direction: str,
+        sig_type: str = "raw"
 ) -> np.ndarray:
     """Load data from the MVC subset.
 
@@ -120,10 +121,12 @@ def load_mvc(
         Subject id.
     session: int
         Session id.
+    task: int
+        Task id.
+    direction: str
+        Direction of the movement ("extension" or "flexion").
     sig_type: str, default="raw"
         Signal type ("raw", "preprocess" or "force").
-    verbose: bool, default=False
-        Whether to log information or not.
 
     Returns
     -------
@@ -134,25 +137,15 @@ def load_mvc(
     assert sig_type in ["raw", "preprocess", "force"], \
         "The signal type must be either \"raw\", \"preprocess\" or \"force\"."
 
-    path = os.path.join(root, "mvc_dataset", f"subject{subject + 1:02d}_session{session + 1}")
-    data = []
-    start = time.time()
-    for i in range(1, 11):
-        direction = "extension" if i % 2 == 0 else "flexion"
+    path = os.path.join(
+        root,
+        "mvc_dataset",
+        f"subject{subject + 1:02d}_session{session + 1}",
+        f"mvc_{sig_type}_finger{task}_{direction}"
+    )
+    data, _ = wfdb.rdsamp(os.path.join(path, ))
 
-        if verbose:
-            print("\r", end="")
-            print(f"Loading sample {i}/10", end="", flush=True)
-
-        signal, _ = wfdb.rdsamp(os.path.join(path, f"mvc_{sig_type}_finger{ceil(i / 2)}_{direction}"))
-        data.append(signal.T)
-
-    if verbose:
-        elapsed = time.time() - start
-        print("\r", end="")
-        print(f"Data loaded in {elapsed:.2f} s")
-
-    return np.stack(data)
+    return data.T
 
 
 def load_ndof(
