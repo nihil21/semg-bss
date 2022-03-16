@@ -46,15 +46,22 @@ def main():
 
     for subject in range(20):
         for session in range(2):
-            sub_emg = semg_bss.hyser.load_ndof(DATA_DIR, subject, session, sig_type="preprocess", verbose=True)
             for combination in range(15):
                 for trial in range(2):
-                    emg = sub_emg[combination, trial]
+                    emg = semg_bss.hyser.load_ndof(
+                        DATA_DIR,
+                        subject,
+                        session,
+                        combination,
+                        trial,
+                        sig_type="preprocess"
+                    )
                     firings = emg_separator.fit_transform(emg)
                     firings.to_parquet(
-                        path=f"firings_{subject + 1:02d}_{session + 1}_{combination + 1}_{trial + 1}.gzip",
+                        path=f"{OUT_DIR}/firings_{subject + 1:02d}_{session + 1}_{combination + 1}_{trial + 1}.gzip",
                         compression="gzip"
                     )
+                    emg_separator.reset()
 
 
 if __name__ == "__main__":

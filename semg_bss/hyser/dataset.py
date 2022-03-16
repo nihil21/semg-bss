@@ -6,12 +6,65 @@ import numpy as np
 import wfdb
 
 
+def load_pr(
+        root: str,
+        gesture: int,
+        subject: int,
+        session: int,
+        task_type: str,
+        sig_type: str,
+        task: int,
+        trial: int
+) -> np.ndarray:
+    """Load data from the 1DoF subset.
+
+    Parameters
+    ----------
+    root: str
+        Path to Hyser dataset root folder.
+    gesture: int,
+        Gesture id.
+    subject: int
+        Subject id.
+    session: int
+        Session id.
+    task_type: str
+        Task type ("maintenance" or "dynamic").
+    sig_type: str
+        Signal type ("raw", "preprocess" or "force").
+    task: int
+        Task id.
+    trial: int
+        Trial id.
+
+    Returns
+    -------
+    data: np.ndarray
+        Array containing sEMG signal for the given gesture, subject, session, trial and task<.
+    """
+
+    assert task_type in ["maintenance", "dynamic"], \
+        "The signal type must be either \"maintenance\" or \"dynamic\"."
+    assert sig_type in ["raw", "preprocess", "force"], \
+        "The signal type must be either \"raw\", \"preprocess\" or \"force\"."
+
+    path = os.path.join(
+        root,
+        "pr_dataset",
+        f"{gesture:02d}",
+        f"subject{subject:02d}_session{session}_{task_type}_{sig_type}_trial{trial}_task{task}")
+    data, _ = wfdb.rdsamp(path)
+
+    return data.T
+
+
 def load_1dof(
         root: str,
         subject: int,
         session: int,
-        sig_type: str = "raw",
-        verbose: bool = False,
+        task: int,
+        trial: int,
+        sig_type: str = "raw"
 ) -> np.ndarray:
     """Load data from the 1DoF subset.
 
@@ -23,10 +76,12 @@ def load_1dof(
         Subject id.
     session: int
         Session id.
+    task: int
+        Task id.
+    trial: int
+        Trial id.
     sig_type: str, default="raw"
         Signal type ("raw", "preprocess" or "force").
-    verbose: bool, default=False
-        Whether to log information or not.
 
     Returns
     -------
@@ -37,28 +92,15 @@ def load_1dof(
     assert sig_type in ["raw", "preprocess", "force"], \
         "The signal type must be either \"raw\", \"preprocess\" or \"force\"."
 
-    path = os.path.join(root, "1dof_dataset", f"subject{subject + 1:02d}_session{session + 1}")
-    data = []
-    start = time.time()
-    for i in range(1, 6):  # tasks
+    path = os.path.join(
+        root,
+        "1dof_dataset",
+        f"subject{subject:02d}_session{session}",
+        f"1dof_{sig_type}_finger{task}_sample{trial}"
+    )
+    data, _ = wfdb.rdsamp(path)
 
-        if verbose:
-            print("\r", end="")
-            print(f"Loading task {i}/5", end="", flush=True)
-
-        data_cur = []
-        for j in range(1, 4):  # trials
-            signal, _ = wfdb.rdsamp(os.path.join(path, f"1dof_{sig_type}_finger{i}_sample{j}"))
-            data_cur.append(signal.T)
-
-        data.append(np.stack(data_cur))
-
-    if verbose:
-        elapsed = time.time() - start
-        print("\r", end="")
-        print(f"Data loaded in {elapsed:.2f} s")
-
-    return np.stack(data)
+    return data.T
 
 
 def load_mvc(
@@ -117,8 +159,9 @@ def load_ndof(
         root: str,
         subject: int,
         session: int,
-        sig_type: str = "raw",
-        verbose: bool = False,
+        combination: int,
+        trial: int,
+        sig_type: str = "raw"
 ) -> np.ndarray:
     """Load data from the 1DoF subset.
 
@@ -130,10 +173,12 @@ def load_ndof(
         Subject id.
     session: int
         Session id.
+    combination: int
+        Combination id.
+    trial: int
+        Trial id.
     sig_type: str, default="raw"
         Signal type ("raw", "preprocess" or "force").
-    verbose: bool, default=False
-        Whether to log information or not.
 
     Returns
     -------
@@ -144,25 +189,12 @@ def load_ndof(
     assert sig_type in ["raw", "preprocess", "force"], \
         "The signal type must be either \"raw\", \"preprocess\" or \"force\"."
 
-    path = os.path.join(root, "ndof_dataset", f"subject{subject + 1:02d}_session{session + 1}")
-    data = []
-    start = time.time()
-    for i in range(1, 16):  # tasks
+    path = os.path.join(
+        root,
+        "ndof_dataset",
+        f"subject{subject:02d}_session{session}",
+        f"ndof_{sig_type}_combination{combination}_sample{trial}"
+    )
+    data, _ = wfdb.rdsamp(path)
 
-        if verbose:
-            print("\r", end="")
-            print(f"Loading task {i}/15", end="", flush=True)
-
-        data_cur = []
-        for j in range(1, 3):  # trials
-            signal, _ = wfdb.rdsamp(os.path.join(path, f"ndof_{sig_type}_combination{i}_sample{j}"))
-            data_cur.append(signal.T)
-
-        data.append(np.stack(data_cur))
-
-    if verbose:
-        elapsed = time.time() - start
-        print("\r", end="")
-        print(f"Data loaded in {elapsed:.2f} s")
-
-    return np.stack(data)
+    return data.T

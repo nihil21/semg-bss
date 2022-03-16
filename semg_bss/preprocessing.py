@@ -1,6 +1,38 @@
-from typing import Tuple
-
 import numpy as np
+from scipy import signal
+
+
+def filter_signal(
+        x: np.ndarray,
+        fs: float,
+        min_freq: float,
+        max_freq: float,
+        order: int = 8
+) -> np.ndarray:
+    """Filter sEMG signal with a Butterworth bandpass filter.
+
+    Parameters
+    ----------
+    x: np.ndarray
+        sEMG data with shape (n_channels, n_samples).
+    fs: float
+        Frequency of the sEMG signal.
+    min_freq: float
+        Minimum frequency.
+    max_freq: float
+        Maximum frequency.
+    order: int, default=8
+        Order of the Butterworth filter.
+
+    Returns
+    -------
+    x_filt: np.ndarray
+        Filtered sEMG signal with shape (n_channels, n_samples).
+    """
+    assert max_freq > min_freq, "The maximum frequency should be greater than the minimum frequency."
+
+    sos = signal.butter(order, (min_freq, max_freq), "bandpass", fs=fs, output="sos")
+    return signal.sosfiltfilt(sos, x)
 
 
 def extend_signal(x: np.ndarray, f_e: int = 0) -> np.ndarray:
@@ -48,7 +80,7 @@ def center_signal(x: np.ndarray) -> np.ndarray:
     return x_center
 
 
-def whiten_signal(x: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def whiten_signal(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Whiten sEMG signal using ZCA algorithm.
 
     Parameters

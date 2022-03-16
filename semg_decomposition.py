@@ -51,15 +51,14 @@ def main():
     assert max_iter > 0, "Number of maximum iterations must be positive."
 
     # 1. Load sEMG data
-    sub_emg = semg_bss.hyser.load_ndof(DATA_DIR, subject, session, sig_type="preprocess", verbose=True)
-    emg = sub_emg[combination, trial]
-    semg_bss.plot_signal(emg[:15], fig_size=(800, 1200), fs=FS_EMG, n_cols=5)
+    emg = semg_bss.hyser.load_ndof(DATA_DIR, subject, session, combination, trial, sig_type="preprocess")
+    semg_bss.plot_signal(emg[:15], fs=FS_EMG, n_cols=5, fig_size=(20, 8))
 
     logging.basicConfig(encoding='utf-8', level=logging.INFO, filemode="w")
 
     emg_separator = semg_bss.EmgSeparator(n_comp, FS_EMG, f_e, g_func, conv_th, sil_th, max_iter, seed=seed)
     firings = emg_separator.fit_transform(emg)
-    semg_bss.raster_plot(firings, fig_size=(800, 1200))
+    semg_bss.raster_plot(firings, sig_len=emg.shape[1], fig_size=(20, 8))
 
 
 if __name__ == "__main__":

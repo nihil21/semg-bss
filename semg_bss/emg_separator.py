@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+
 import numpy as np
 import pandas as pd
 from scipy.cluster.vq import kmeans2
@@ -199,6 +200,7 @@ class EmgSeparator:
         self._sep_mtx = None  # separation matrix
         self._spike_th = None  # threshold for spike/noise classification
         self._n_mu = None  # number of extracted MUs
+        self._sort_by_negentropy = False  # sorting strategy
         self._min_spike_freq = 1  # Hz
         self._max_spike_freq = 250  # Hz
 
@@ -210,13 +212,15 @@ class EmgSeparator:
     def n_mu(self) -> int:
         return self._n_mu
 
-    def fit(self, emg: np.ndarray) -> EmgSeparator:
+    def fit(self, emg: np.ndarray, sort_by_negentropy: bool = False) -> EmgSeparator:
         """Fit instance on given data.
 
         Parameters
         ----------
         emg: np.ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
+        sort_by_negentropy: bool, default=False
+            Whether to sort MUs by neg-entropy or firing rate (default).
 
         Returns
         -------
@@ -231,6 +235,7 @@ class EmgSeparator:
         emg_white, self._white_mtx = whiten_signal(emg_center)
 
         # 2. Decomposition
+        self._sort_by_negentropy = sort_by_negentropy
         self._decomposition(emg_white)
 
         # 3. Postprocessing: removal of inactive MUs and replicas
@@ -266,13 +271,15 @@ class EmgSeparator:
 
         return firings
 
-    def fit_transform(self, emg: np.ndarray) -> pd.DataFrame:
+    def fit_transform(self, emg: np.ndarray, sort_by_negentropy: bool = False) -> pd.DataFrame:
         """Fit instance on given data and decompose it.
 
         Parameters
         ----------
         emg: np.ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
+        sort_by_negentropy: bool, default=False
+            Whether to sort MUs by neg-entropy or firing rate (default).
 
         Returns
         -------
@@ -287,6 +294,7 @@ class EmgSeparator:
         emg_white, self._white_mtx = whiten_signal(emg_center)
 
         # 2. Decomposition
+        self._sort_by_negentropy = sort_by_negentropy
         self._decomposition(emg_white)
 
         # 3. Postprocessing: removal of inactive MUs and replicas
@@ -560,10 +568,10 @@ class EmgSeparator:
         sq_peaks = si_sq[peaks]
 
         # If threshold is provided, use it to identify spikes
-        # if threshold is not None:
-        #     logging.info(f"Using pre-computed threshold {threshold}")
-        #     spike_loc = peaks[sq_peaks > threshold]
-        #     return spike_loc, None, None
+        if threshold is not None:
+            logging.info(f"Using pre-computed threshold {threshold}")
+            spike_loc = peaks[sq_peaks > threshold]
+            return spike_loc, None, None
 
         # Perform k-means with 2 clusters (high and small peaks)
         centroids, labels = kmeans2(sq_peaks.reshape(-1, 1), k=2, minit="++", seed=self._prng)
@@ -642,12 +650,16 @@ class EmgSeparator:
                 # Detect spikes with pre-computed threshold
                 spike_loc, _, _ = self._detect_spikes(si=muapts[i], threshold=self._spike_th[i])
                 if min_n_spikes <= spike_loc.size <= max_n_spikes:
-                    firings_tmp.extend([{"MU index": i, "Firing time": s / self._fs} for s in spike_loc])
+                    firings_tmp.extend([{
+                        "MU index": i,
+                        "Firing time": s / self._fs,
+                        "Firing rate": spike_loc.size / n_samples * self._fs
+                    } for s in spike_loc])
             # Convert to Pandas DataFrame
             firings = pd.DataFrame(firings_tmp)
 
         else:  # standard postprocessing
-            firings_tmp: dict[int, np.ndarray] = {}
+            firings_dict: dict[int, np.ndarray] = {}
             invalid_mus: list[int] = []
             spike_th: list[float] = []
             valid_count = 0
@@ -656,7 +668,7 @@ class EmgSeparator:
                 spike_loc, _, spike_th_i = self._detect_spikes(si=muapts[i])
                 if min_n_spikes <= spike_loc.size <= max_n_spikes:
                     # Save firing time and spike detection threshold
-                    firings_tmp[valid_count] = spike_loc / self._fs
+                    firings_dict[valid_count] = spike_loc / self._fs
                     spike_th.append(spike_th_i)
                     valid_count += 1
                 else:
@@ -670,15 +682,15 @@ class EmgSeparator:
 
             # Step 2: remove MUs delayed replicas
             cur_mu = 0
-            mu_idx = list(firings_tmp.keys())
+            mu_idx = list(firings_dict.keys())
             duplicate_mus: dict[int, list[int]] = {}
             while cur_mu < len(mu_idx):
                 # Find index of replicas by checking synchronization
                 i = 1
                 while i < len(mu_idx) - cur_mu:
                     in_sync = self._sync_correlation(
-                        firings_tmp[mu_idx[cur_mu]],
-                        firings_tmp[mu_idx[cur_mu + i]],
+                        firings_dict[mu_idx[cur_mu]],
+                        firings_dict[mu_idx[cur_mu + i]],
                         win_len=0.01
                     )
                     if in_sync:
@@ -705,21 +717,28 @@ class EmgSeparator:
             self._sep_mtx = np.delete(self._sep_mtx, mus_to_remove, axis=1)
             muapts = np.delete(muapts, mus_to_remove, axis=0)
             for mu in mus_to_remove:
-                del firings_tmp[mu]
+                del firings_dict[mu]
+            firings_list: list[np.ndarray] = list(firings_dict.values())
+
+            # Compute firing rate and neg-entropy
+            firing_rate = np.array(list(
+                map(lambda x: x.size / n_samples * self._fs, firings_list)
+            ))
+            neg_entropy = self.compute_negentropy(muapts)
+
+            # Sort MUs (in descending order)
+            idx = np.argsort(neg_entropy)[::-1] if self._sort_by_negentropy else np.argsort(firing_rate)[::-1]
+            self._sep_mtx = self._sep_mtx[:, idx]
+            firings_list = [firings_list[i] for i in idx]
+            firing_rate = firing_rate[idx]
+            neg_entropy = neg_entropy[idx]
 
             # Convert to Pandas DataFrame
             firings = pd.DataFrame([
-                {"MU index": i, "Firing time": f} for i, f_list in enumerate(firings_tmp.values()) for f in f_list
+                {"MU index": i, "Firing time": f_time, "Firing rate": f_rate, "Neg-entropy": neg}
+                for i, (f_times, f_rate, neg) in enumerate(zip(firings_list, firing_rate, neg_entropy))
+                for f_time in f_times
             ])
-
-        # Compute firing rate and neg-entropy
-        firings["Firing rate"] = firings.groupby(["MU index"]).transform(
-            lambda x: x.count() / n_samples * self._fs
-        )
-        neg_entropy = self.compute_negentropy(muapts)
-        firings["Neg-entropy"] = firings["MU index"].apply(
-            lambda mu: neg_entropy[mu]
-        )
 
         return firings
 
