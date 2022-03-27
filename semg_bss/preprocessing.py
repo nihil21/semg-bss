@@ -48,7 +48,7 @@ def extend_signal(x: np.ndarray, f_e: int = 0) -> np.ndarray:
     Returns
     -------
     x_ext: np.ndarray
-        Extended sEMG signal with shape (r * n_channels, n_samples).
+        Extended sEMG signal with shape (f_e * n_channels, n_samples).
     """
 
     n_obs, n_samples = x.shape
