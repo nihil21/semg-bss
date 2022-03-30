@@ -42,7 +42,7 @@ def main():
     assert g_func in ["logcosh", "exp", "skew"], "G function must be either \"logcosh\", \"exp\" or \"skew\"."
     assert max_iter > 0, "Number of maximum iterations must be positive."
 
-    emg_separator = semg_bss.EmgSeparator(n_comp, FS_EMG, f_e, g_func, conv_th, sil_th, max_iter, seed=seed)
+    emg_separator = semg_bss.EMGSeparator(n_comp, FS_EMG, f_e, g_func, conv_th, sil_th, max_iter, seed=seed)
 
     for subject in range(20):
         for session in range(2):

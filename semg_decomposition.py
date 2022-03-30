@@ -81,7 +81,7 @@ def main():
 
     logging.basicConfig(encoding='utf-8', level=logging.INFO, filemode="w")
 
-    emg_separator = semg_bss.EmgSeparator(
+    emg_separator = semg_bss.EMGSeparator(
         n_comp,
         FS_EMG,
         f_e,

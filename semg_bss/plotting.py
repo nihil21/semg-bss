@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from itertools import product
+
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from brian2 import Synapses
 from matplotlib import pyplot as plt
+
+from .snn import MUAPTClassifier
 
 sns.set_theme()
 
@@ -168,38 +171,85 @@ def raster_plot(
 
 
 def plot_connectivity(
-        syn: Synapses,
+        muapt_classifier: MUAPTClassifier,
         fig_size: tuple[int, int] | None = None
 ) -> None:
     """Plot the neural connectivity of a given synapse.
 
     Parameters
     ----------
-    syn: Synapses
-        Synapse instance.
+    muapt_classifier: MUAPTClassifier
+        Instance of MUAPTClassifier.
     fig_size: tuple[int, int] | None, default=None
         Height and width of the plot.
     """
-    # noinspection PyTypeChecker
-    n_s = len(syn.source)
-    n_t = len(syn.target)
+    n_s = muapt_classifier.n_in
+    n_t = muapt_classifier.n_out
+    conn = list(product(range(n_s), range(n_t)))
+    conn_i, conn_j = zip(*conn)
 
     if fig_size is not None:
         plt.figure(figsize=fig_size)
     plt.subplot(121)
     plt.plot(np.zeros(n_s), np.arange(n_s), "ok", ms=10)
     plt.plot(np.ones(n_t), np.arange(n_t), "ok", ms=10)
-    for i, j in zip(syn.i, syn.j):
+    for i, j in zip(conn_i, conn_j):
         plt.plot([0, 1], [i, j], "-k")
     plt.xticks([0, 1], ["Source", "Target"])
     plt.ylabel("Neuron index")
     plt.xlim(-0.1, 1.1)
     plt.ylim(-1, max(n_s, n_t))
     plt.subplot(122)
-    plt.plot(syn.i, syn.j, "ok")
+    plt.plot(conn_i, conn_j, "ok")
     plt.xlim(-1, n_s)
     plt.ylim(-1, n_t)
     plt.xlabel("Source neuron index")
     plt.ylabel("Target neuron index")
 
+    plt.show()
+
+
+def plot_snn_hist(
+        hist: dict[str, tuple[np.ndarray, np.ndarray]],
+        fig_size: tuple[int, int] | None = None
+) -> None:
+    """Plot the training results.
+
+    Parameters
+    ----------
+    hist: dict[str, tuple[np.ndarray, np.ndarray]]
+        Dictionary containing the SNN training/inference history.
+    fig_size: tuple[int, int] | None, default=None
+        Height and width of the plot.
+    """
+    if fig_size is not None:
+        plt.figure(figsize=fig_size)
+
+    plt.subplot(221)
+    plt.title("Input spikes")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Neuron index")
+    plt.plot(hist["input_spikes"][0], hist["input_spikes"][1], ".k")
+
+    plt.subplot(222)
+    plt.title("Output spikes")
+    plt.xlabel("Time (s)")
+    plt.ylabel("Neuron index")
+    plt.plot(hist["output_spikes"][0], hist["output_spikes"][1], ".k")
+
+    plt.subplot(223)
+    plt.title("Synapses weights")
+    plt.xlabel("Time (s)")
+    plt.ylabel("w / g_max")
+    plt.plot(hist["synapses_weights"][0], hist["synapses_weights"][1])
+
+    plt.subplot(224)
+    plt.title("Membrane potential")
+    plt.xlabel("Time (s)")
+    plt.ylabel("V")
+    plt.plot(hist["output_potential"][0], hist["output_potential"][1][0], label="Neuron 0")
+    plt.plot(hist["output_potential"][0], hist["output_potential"][1][1], label="Neuron 1")
+    plt.legend(loc="best")
+
+    plt.tight_layout()
     plt.show()

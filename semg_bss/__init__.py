@@ -1,10 +1,11 @@
 from . import hyser, preprocessing
-from .emg_separator import EmgSeparator
-from .plotting import plot_signal, plot_correlation, raster_plot, plot_connectivity
+from .emg_separator import EMGSeparator
+from .plotting import plot_signal, plot_correlation, raster_plot, plot_connectivity, plot_snn_hist
 from .snn import MUAPTClassifier
 
 __all__ = [
-    "EmgSeparator",
+    "EMGSeparator",
+    "MUAPTClassifier",
     "hyser",
     "simulated",
     "preprocessing",
@@ -12,5 +13,5 @@ __all__ = [
     "plot_correlation",
     "raster_plot",
     "plot_connectivity",
-    "MUAPTClassifier"
+    "plot_snn_hist"
 ]
