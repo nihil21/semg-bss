@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from itertools import product
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -210,14 +211,14 @@ def plot_connectivity(
 
 
 def plot_snn_hist(
-        hist: dict[str, tuple[np.ndarray, np.ndarray]],
+        hist: dict[str, dict[Any, Any]],
         fig_size: tuple[int, int] | None = None
 ) -> None:
     """Plot the training results.
 
     Parameters
     ----------
-    hist: dict[str, tuple[np.ndarray, np.ndarray]]
+    hist: dict[str, dict[Any, Any]]
         Dictionary containing the SNN training/inference history.
     fig_size: tuple[int, int] | None, default=None
         Height and width of the plot.
@@ -229,26 +230,30 @@ def plot_snn_hist(
     plt.title("Input spikes")
     plt.xlabel("Time (s)")
     plt.ylabel("Neuron index")
-    plt.plot(hist["input_spikes"][0], hist["input_spikes"][1], ".k")
+    for k in hist["in_spikes"].keys():
+        plt.plot(hist["in_spikes"][k]["t"], hist["in_spikes"][k]["i"], ".", label=f"Gesture {k}")
+    plt.legend(loc="best")
 
     plt.subplot(222)
     plt.title("Output spikes")
     plt.xlabel("Time (s)")
     plt.ylabel("Neuron index")
-    plt.plot(hist["output_spikes"][0], hist["output_spikes"][1], ".k")
+    for k in hist["out_spikes"].keys():
+        plt.plot(hist["out_spikes"][k]["t"], hist["out_spikes"][k]["i"], ".", label=f"Gesture {k}")
+    plt.legend(loc="best")
 
     plt.subplot(223)
     plt.title("Synapses weights")
     plt.xlabel("Time (s)")
     plt.ylabel("w / g_max")
-    plt.plot(hist["synapses_weights"][0], hist["synapses_weights"][1])
+    plt.plot(hist["syn_w"]["t"], hist["syn_w"]["w"])
 
     plt.subplot(224)
     plt.title("Membrane potential")
     plt.xlabel("Time (s)")
     plt.ylabel("V")
-    plt.plot(hist["output_potential"][0], hist["output_potential"][1][0], label="Neuron 0")
-    plt.plot(hist["output_potential"][0], hist["output_potential"][1][1], label="Neuron 1")
+    plt.plot(hist["out_v"]["t"], hist["out_v"]["V"][:, 0], label="Neuron 0")
+    plt.plot(hist["out_v"]["t"], hist["out_v"]["V"][:, 1], label="Neuron 1")
     plt.legend(loc="best")
 
     plt.tight_layout()
