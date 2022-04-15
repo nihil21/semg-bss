@@ -1,5 +1,5 @@
-from .dataset import load_semg
+from .dataset import load_simulated
 
 __all__ = [
-    "load_semg",
+    "load_simulated",
 ]

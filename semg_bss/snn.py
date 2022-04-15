@@ -71,34 +71,41 @@ class MUAPTClassifier:
     """
 
     def __init__(
-            self,
-            n_in: int,
-            n_out: int,
-            v_rest: float = -74,
-            tau: float = 20,
-            v_th: float = -54,
-            v_reset: float = -60,
-            e_ex: float = 0,
-            tau_ex: float = 5,
-            g_max: float = 0.015,
-            taupre: float = 20,
-            taupost: float = 20,
-            apre_max: float = 0.005,
-            b_a: float = 1.05,
-            ref_period: float = 5
+        self,
+        n_in: int,
+        n_out: int,
+        v_rest: float = -74,
+        tau: float = 20,
+        v_th: float = -54,
+        v_reset: float = -60,
+        e_ex: float = 0,
+        tau_ex: float = 5,
+        g_max: float = 0.015,
+        taupre: float = 20,
+        taupost: float = 20,
+        apre_max: float = 0.005,
+        b_a: float = 1.05,
+        ref_period: float = 5,
     ) -> None:
         self._n_in = n_in
         self._n_out = n_out
         self._g_max = g_max
         self._weight = None
 
+        w_min, w_max = 0, g_max
+
+        apost_max = -apre_max * taupre / taupost * b_a
+
         # Define equations for LIF neuron
         self._eqs_lif = f"""
             dV/dt = ({v_rest} * mV - V + g_ex * ({e_ex} * mV - V)) / ({tau} * ms) : volt (unless refractory)
             dg_ex/dt = -g_ex / ({tau_ex} * ms) : 1
         """
-        self._eqs_th = f"V > {v_th} * mV"
-        self._eqs_reset = f"V = {v_reset} * mV"
+        # self._eqs_lif = f"""
+        #     dv/dt = -v / ({tau} * ms) : volt (unless refractory)
+        # """
+        self._eqs_th = f"v > {v_th} * mV"
+        self._eqs_reset = f"v = {v_reset} * mV"
         self._eqs_ref = f"{ref_period} * ms"
 
         # Define equations for the synapse
@@ -110,11 +117,11 @@ class MUAPTClassifier:
         self._eqs_pre = f"""
             g_ex += w
             apre += {apre_max}
-            w = clip(w + apost, 0, {g_max})
+            w = clip(w + apost, {w_min}, {w_max})
         """
         self._eqs_post = f"""
-            apost += {-apre_max * taupre / taupost * b_a}
-            w = clip(w + apre, 0, {g_max})
+            apost += {apost_max}
+            w = clip(w + apre, {w_min}, {w_max})
         """
 
     @property
@@ -126,10 +133,10 @@ class MUAPTClassifier:
         return self._n_out
 
     def train(
-            self,
-            firings_train: list[tuple[pd.DataFrame, int]],
-            duration: float,
-            epochs: int
+        self,
+        firings_train: list[tuple[pd.DataFrame, int]],
+        duration: float,
+        epochs: int,
     ) -> dict[str, dict[Any, Any]]:
         """Train the SNN with STDP.
 
@@ -151,12 +158,7 @@ class MUAPTClassifier:
         n0, n1, syn, spike_mon0, spike_mon1, syn_mon, out_mon = self._build_snn()
         snn = b2.Network(n0, n1, syn, spike_mon0, spike_mon1, syn_mon, out_mon)
 
-        hist = {
-            "in_spikes": {},
-            "out_spikes": {},
-            "syn_w": {},
-            "out_v": {}
-        }
+        hist = {"in_spikes": {}, "out_spikes": {}, "syn_w": {}, "out_v": {}}
 
         prev_sp0 = 0
         prev_sp1 = 0
@@ -168,12 +170,14 @@ class MUAPTClassifier:
             firings_train_sh = random.sample(firings_train, len(firings_train))
 
             for i, (firings_train_x, firings_train_y) in enumerate(firings_train_sh):
-                logging.info(f"Sample {i + 1}/{len(firings_train)} - Gesture {firings_train_y}")
+                logging.info(
+                    f"Sample {i + 1}/{len(firings_train)} - Gesture {firings_train_y}"
+                )
 
                 # Set spikes
                 n0.set_spikes(
                     firings_train_x["MU index"].values,
-                    (firings_train_x["Firing time"].values + cur_sim) * b2.second
+                    (firings_train_x["Firing time"].values + cur_sim) * b2.second,
                 )
                 # Run simulation
                 snn.run(duration * b2.second)
@@ -189,73 +193,69 @@ class MUAPTClassifier:
                 # Save history of input spikes
                 sp0_state = spike_mon0.get_states(["t", "i"], units=False)
                 idx = np.flatnonzero(
-                    (sp0_state["t"] >= cur_sim * duration) & (sp0_state["t"] < (cur_sim + 1) * duration)
+                    (sp0_state["t"] >= cur_sim * duration)
+                    & (sp0_state["t"] < (cur_sim + 1) * duration)
                 )
                 if firings_train_y not in hist["in_spikes"]:
                     hist["in_spikes"][firings_train_y] = {}
                     hist["in_spikes"][firings_train_y]["t"] = sp0_state["t"][idx]
                     hist["in_spikes"][firings_train_y]["i"] = sp0_state["i"][idx]
                 else:
-                    hist["in_spikes"][firings_train_y]["t"] = np.concatenate([
-                        hist["in_spikes"][firings_train_y]["t"],
-                        sp0_state["t"][idx]
-                    ])
-                    hist["in_spikes"][firings_train_y]["i"] = np.concatenate([
-                        hist["in_spikes"][firings_train_y]["i"],
-                        sp0_state["i"][idx]
-                    ])
+                    hist["in_spikes"][firings_train_y]["t"] = np.concatenate(
+                        [hist["in_spikes"][firings_train_y]["t"], sp0_state["t"][idx]]
+                    )
+                    hist["in_spikes"][firings_train_y]["i"] = np.concatenate(
+                        [hist["in_spikes"][firings_train_y]["i"], sp0_state["i"][idx]]
+                    )
                 # Save history of output spikes
                 sp1_state = spike_mon1.get_states(["t", "i"], units=False)
                 idx = np.flatnonzero(
-                    (sp1_state["t"] >= cur_sim * duration) & (sp1_state["t"] < (cur_sim + 1) * duration)
+                    (sp1_state["t"] >= cur_sim * duration)
+                    & (sp1_state["t"] < (cur_sim + 1) * duration)
                 )
                 if firings_train_y not in hist["out_spikes"]:
                     hist["out_spikes"][firings_train_y] = {}
                     hist["out_spikes"][firings_train_y]["t"] = sp1_state["t"][idx]
                     hist["out_spikes"][firings_train_y]["i"] = sp1_state["i"][idx]
                 else:
-                    hist["out_spikes"][firings_train_y]["t"] = np.concatenate([
-                        hist["out_spikes"][firings_train_y]["t"],
-                        sp1_state["t"][idx]
-                    ])
-                    hist["out_spikes"][firings_train_y]["i"] = np.concatenate([
-                        hist["out_spikes"][firings_train_y]["i"],
-                        sp1_state["i"][idx]
-                    ])
+                    hist["out_spikes"][firings_train_y]["t"] = np.concatenate(
+                        [hist["out_spikes"][firings_train_y]["t"], sp1_state["t"][idx]]
+                    )
+                    hist["out_spikes"][firings_train_y]["i"] = np.concatenate(
+                        [hist["out_spikes"][firings_train_y]["i"], sp1_state["i"][idx]]
+                    )
                 # Save history of synaptic weights
                 syn_state = syn_mon.get_states(["t", "w"], units=False)
                 idx = np.flatnonzero(
-                    (syn_state["t"] >= cur_sim * duration) & (syn_state["t"] < (cur_sim + 1) * duration)
+                    (syn_state["t"] >= cur_sim * duration)
+                    & (syn_state["t"] < (cur_sim + 1) * duration)
                 )
                 if not hist["syn_w"]:
                     hist["syn_w"]["t"] = syn_state["t"][idx]
                     hist["syn_w"]["w"] = syn_state["w"][idx] / self._g_max
                 else:
-                    hist["syn_w"]["t"] = np.concatenate([
-                        hist["syn_w"]["t"],
-                        syn_state["t"][idx]
-                    ])
-                    hist["syn_w"]["w"] = np.concatenate([
-                        hist["syn_w"]["w"],
-                        syn_state["w"][idx] / self._g_max
-                    ])
+                    hist["syn_w"]["t"] = np.concatenate(
+                        [hist["syn_w"]["t"], syn_state["t"][idx]]
+                    )
+                    hist["syn_w"]["w"] = np.concatenate(
+                        [hist["syn_w"]["w"], syn_state["w"][idx] / self._g_max]
+                    )
                 # Save history of output potential
-                out_state = out_mon.get_states(["t", "V"], units=False)
+                out_state = out_mon.get_states(["t", "v"], units=False)
                 idx = np.flatnonzero(
-                    (out_state["t"] >= cur_sim * duration) & (out_state["t"] < (cur_sim + 1) * duration)
+                    (out_state["t"] >= cur_sim * duration)
+                    & (out_state["t"] < (cur_sim + 1) * duration)
                 )
                 if not hist["out_v"]:
                     hist["out_v"]["t"] = out_state["t"][idx]
-                    hist["out_v"]["V"] = out_state["V"][idx]
+                    hist["out_v"]["v"] = out_state["v"][idx]
                 else:
-                    hist["out_v"]["t"] = np.concatenate([
-                        hist["out_v"]["t"],
-                        out_state["t"][idx]
-                    ])
-                    hist["out_v"]["V"] = np.concatenate([
-                        hist["out_v"]["V"],
-                        out_state["V"][idx]
-                    ])
+                    hist["out_v"]["t"] = np.concatenate(
+                        [hist["out_v"]["t"], out_state["t"][idx]]
+                    )
+                    hist["out_v"]["v"] = np.concatenate(
+                        [hist["out_v"]["v"], out_state["v"][idx]]
+                    )
 
                 cur_sim += 1
 
@@ -265,9 +265,7 @@ class MUAPTClassifier:
         return hist
 
     def inference(
-            self,
-            firings_test_sample: pd.DataFrame,
-            duration: float
+        self, firings_test_sample: pd.DataFrame, duration: float
     ) -> dict[str, dict[Any, Any]]:
         """Test the SNN.
 
@@ -284,13 +282,15 @@ class MUAPTClassifier:
             Dictionary containing the SNN training/inference history.
         """
         # Build fixed SNN with learnt weights
-        n0, n1, syn, spike_mon0, spike_mon1, syn_mon, out_mon = self._build_snn(plastic=False, w=self._weight)
+        n0, n1, syn, spike_mon0, spike_mon1, syn_mon, out_mon = self._build_snn(
+            plastic=False, w=self._weight
+        )
         snn = b2.Network(n0, n1, syn, spike_mon0, spike_mon1, syn_mon, out_mon)
 
         # Set spikes
         n0.set_spikes(
             firings_test_sample[0]["MU index"].values,
-            firings_test_sample[0]["Firing time"].values * b2.second
+            firings_test_sample[0]["Firing time"].values * b2.second,
         )
         # Run simulation
         snn.run(duration * b2.second)
@@ -300,12 +300,7 @@ class MUAPTClassifier:
         print(f"Neuron0 spiked {sp0} times.")
         print(f"Neuron1 spiked {sp1} times.")
 
-        hist = {
-            "in_spikes": {},
-            "out_spikes": {},
-            "syn_w": {},
-            "out_v": {}
-        }
+        hist = {"in_spikes": {}, "out_spikes": {}, "syn_w": {}, "out_v": {}}
         # Save history of input spikes
         sp0_state = spike_mon0.get_states(["t", "i"], units=False)
         hist["in_spikes"][firings_test_sample[1]] = {}
@@ -321,17 +316,15 @@ class MUAPTClassifier:
         hist["syn_w"]["t"] = syn_state["t"]
         hist["syn_w"]["w"] = syn_state["w"] / self._g_max
         # Save history of output potential
-        out_state = out_mon.get_states(["t", "V"], units=False)
+        out_state = out_mon.get_states(["t", "v"], units=False)
         hist["out_v"]["t"] = out_state["t"]
-        hist["out_v"]["V"] = out_state["V"]
+        hist["out_v"]["v"] = out_state["v"]
 
         return hist
 
     # noinspection PyTypeChecker
     def _build_snn(
-            self,
-            plastic: bool = True,
-            w: np.ndarray | None = None
+        self, plastic: bool = True, w: np.ndarray | None = None
     ) -> tuple[
         b2.SpikeGeneratorGroup,
         b2.NeuronGroup,
@@ -339,7 +332,7 @@ class MUAPTClassifier:
         b2.SpikeMonitor,
         b2.SpikeMonitor,
         b2.StateMonitor,
-        b2.StateMonitor
+        b2.StateMonitor,
     ]:
         """Build an instance of SNN from the given firings.
 
@@ -368,18 +361,14 @@ class MUAPTClassifier:
             Instance of StateMonitor for the output neurons' membrane potential.
         """
         # Define layers
-        n0 = b2.SpikeGeneratorGroup(
-            self._n_in,
-            [0],
-            [0] * b2.second
-        )
+        n0 = b2.SpikeGeneratorGroup(self._n_in, [0], [0] * b2.second)
         n1 = b2.NeuronGroup(
             self._n_out,
             self._eqs_lif,
             threshold=self._eqs_th,
             reset=self._eqs_reset,
             refractory=self._eqs_ref,
-            method="euler"
+            method="euler",
         )
 
         # Define synapses
@@ -389,9 +378,9 @@ class MUAPTClassifier:
             n0,
             n1,
             model=self._eqs_syn if plastic else "w : 1",
-            on_pre=self._eqs_pre if plastic else "g_ex += w",
+            on_pre=self._eqs_pre if plastic else "v_post += w * mV",
             on_post=self._eqs_post if plastic else None,
-            method="linear"
+            method="linear",
         )
         syn.connect(i=conn_i, j=conn_j)
         syn.w = f"rand() * {self._g_max}" if w is None else w
@@ -400,6 +389,6 @@ class MUAPTClassifier:
         spike_mon0 = b2.SpikeMonitor(n0)
         spike_mon1 = b2.SpikeMonitor(n1)
         syn_mon = b2.StateMonitor(syn, "w", record=True)
-        out_mon = b2.StateMonitor(n1, "V", record=True)
+        out_mon = b2.StateMonitor(n1, "v", record=True)
 
         return n0, n1, syn, spike_mon0, spike_mon1, syn_mon, out_mon
