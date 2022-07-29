@@ -1,3 +1,20 @@
+"""Copyright 2022 Mattia Orlandi
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+
+from __future__ import annotations
+
 import numpy as np
 from scipy import signal
 
@@ -7,28 +24,30 @@ def filter_signal(
     fs: float,
     min_freq: float,
     max_freq: float,
-    notch_freqs: list[float],
+    notch_freqs: tuple[float, ...] = (),
     order: int = 5
 ) -> np.ndarray:
-    """Filter sEMG signal with a Butterworth bandpass filter.
+    """Filter signal with a bandpass filter and notch filters.
 
     Parameters
     ----------
     x: np.ndarray
-        sEMG data with shape (n_channels, n_samples).
+        Signal with shape (n_channels, n_samples).
     fs: float
-        Frequency of the sEMG signal.
+        Sampling frequency of the signal.
     min_freq: float
-        Minimum frequency.
+        Minimum frequency for bandpass filter.
     max_freq: float
-        Maximum frequency.
-    order: int, default=4
+        Maximum frequency for bandpass filter.
+    notch_freqs: tuple[float], default=()
+        Tuple of frequencies to attenuate with notch filters (e.g. for powerline noise).
+    order: int, default=5
         Order of the Butterworth filter.
 
     Returns
     -------
     x_filt: np.ndarray
-        Filtered sEMG signal with shape (n_channels, n_samples).
+        Filtered signal with shape (n_channels, n_samples).
     """
     assert (
         max_freq > min_freq
@@ -46,75 +65,80 @@ def filter_signal(
 
 
 def extend_signal(x: np.ndarray, f_e: int = 0) -> np.ndarray:
-    """Extend sEMG signal by a given extension factor.
+    """Extend signal with delayed replicas by a given extension factor.
 
     Parameters
     ----------
     x: np.ndarray
-        sEMG data with shape (n_channels, n_samples).
+        Signal with shape (n_channels, n_samples).
     f_e: int, default=0
         Extension factor.
 
     Returns
     -------
     x_ext: np.ndarray
-        Extended sEMG signal with shape (f_e * n_channels, n_samples).
+        Extended signal with shape (f_e * n_channels, n_samples).
     """
 
     n_obs, n_samples = x.shape
     n_obs_ext = n_obs * f_e
-    x_ext = np.zeros(shape=(n_obs_ext, n_samples), dtype=float)
+    x_ext = np.zeros(shape=(n_obs_ext, n_samples - f_e + 1), dtype=float)
     for i in range(f_e):
-        x_ext[i::f_e, i:] = x[:, : n_samples - i]
+        x_ext[i::f_e] = x[:, f_e - i - 1:n_samples - i]
 
     return x_ext
 
 
-def center_signal(x: np.ndarray) -> np.ndarray:
-    """Center sEMG signal.
+def center_signal(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Center signal.
 
     Parameters
     ----------
     x: np.ndarray
-        sEMG data with shape (n_channels, n_samples).
+        Signal with shape (n_channels, n_samples).
 
     Returns
     -------
     x_center: np.ndarray
-        Centered sEMG signal with shape (n_channels, n_samples).
+        Centered signal with shape (n_channels, n_samples).
+    x_mean: np.ndarray
+        Mean vector of the signal with shape (n_channels,).
     """
 
     x_mean = np.mean(x, axis=1, keepdims=True)
     x_center = x - x_mean
 
-    return x_center
+    return x_center, x_mean
 
 
-def whiten_signal(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Whiten sEMG signal using ZCA algorithm.
+def whiten_signal(x: np.ndarray, reg_factor: float = 0.5) -> tuple[np.ndarray, np.ndarray]:
+    """Whiten signal using ZCA algorithm.
 
     Parameters
     ----------
     x: np.ndarray
-        sEMG data with shape (n_channels, n_samples).
+        Signal with shape (n_channels, n_samples).
+    reg_factor: float, default=0.5
+        Regularization factor representing the proportion of eigenvalues 
+        that are ignored in the computation of the whitening matrix.
 
     Returns
     -------
     x_white: np.ndarray
-        Whitened sEMG signal with shape (n_channels, n_samples).
+        Whitened signal with shape (n_channels, n_samples).
     white_mtx: np.ndarray
         Whitening matrix.
     """
+    assert 0 <= reg_factor < 1, "The regularization factor must be in range [0, 1[."
 
     # Compute SVD of correlation matrix
     cov_mtx = np.cov(x)
     u, s, vh = np.linalg.svd(cov_mtx)
     # Regularization: keep only the eigenvalues (and the corresponding eigenvectors)
     # that are greater than the mean of the smallest half of the eigenvalues
-    reg_factor = 0.5
     n_eig = s.shape[0]
     n_noise = int(reg_factor * n_eig)
-    eig_th = s[n_eig - n_noise :].mean()
+    eig_th = s[n_eig - n_noise:].mean() if n_noise != 0 else -np.inf
     idx = s > eig_th
     # Compute whitening matrix
     d = np.diag(1.0 / np.sqrt(s[idx]))
