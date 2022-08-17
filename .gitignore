@@ -134,3 +134,6 @@ dmypy.json
 
 # Brian2
 tmp/
+
+# Logs
+semg_bss.log
