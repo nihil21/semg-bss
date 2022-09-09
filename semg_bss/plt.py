@@ -357,7 +357,7 @@ def plot_firings_comparison(
     plt.legend(
         handles=[m_patches.Patch(color="b", label="Session 1"), m_patches.Patch(color="r", label="Session 2")]
     )
-    plt.savefig("rec_ordering.svg")
+    
     plt.show()
 
 

@@ -137,3 +137,6 @@ tmp/
 
 # Logs
 semg_bss.log
+
+# PyTorch models
+*.pt

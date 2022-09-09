@@ -62,7 +62,7 @@ def df_to_dense(df: pd.DataFrame, n_mu: int, offset: float, sig_len: float, fs: 
 def train(
     model: MUAPTClassifierMLP | MUAPTClassifierDNN,
     data: DataLoader,
-    criterion: nn.CrossEntropyLoss,
+    criterion: nn.CrossEntropyLoss | nn.BCEWithLogitsLoss,
     optimizer: Optimizer,
     device: torch.device,
     scaler: GradScaler | None = None
@@ -75,7 +75,7 @@ def train(
         Classifier for MUAPTs.
     data: DataLoader
         Instance of DataLoader with the training data.
-    criterion: nn.CrossEntropyLoss
+    criterion: nn.CrossEntropyLoss | BCEWithLogitsLoss
         Classification loss (i.e. CrossEntropy).
     optimizer: Optimizer
         Optimization algorithm to use.
@@ -124,12 +124,21 @@ def train(
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-            
-        # Obtain predicted class
-        top_pred = torch.argmax(y_pred, dim=-1)
-        # Compute accuracy
-        correct = (top_pred == y).sum().cpu()
-        acc = correct / y.size()[0]
+        
+        if isinstance(criterion, nn.BCEWithLogitsLoss):
+            # Obtain predicted class
+            pred = (y_pred >= 0).long()
+            # Compute accuracy
+            correct = (pred == y).sum().cpu()
+            acc = correct / y.size()[0]
+        elif isintance(criterion, nn.CrossEntropyLoss):
+            # Obtain predicted class
+            pred = torch.argmax(y_pred, dim=-1)
+            # Compute accuracy
+            correct = (pred == y).sum().cpu()
+            acc = correct / y.size()[0]
+        else:
+            raise NotImplementedError("Only BCEWithLogitsLoss and CrossEntropyLoss are supported.")
         
         # Move tensors back to CPU
         x = x.cpu()
@@ -198,11 +207,18 @@ def evaluate(
                     # Compute loss
                     loss = criterion(y_pred, y)
             
-            # Obtain predicted class
-            top_pred = torch.argmax(y_pred, dim=-1)
-            # Compute accuracy
-            correct = (top_pred == y).sum().cpu()
-            acc = correct / y.size()[0]
+            if isinstance(criterion, nn.BCEWithLogitsLoss):
+                # Obtain predicted class
+                pred = (y_pred >= 0).long()
+                # Compute accuracy
+                correct = (pred == y).sum().cpu()
+                acc = correct / y.size()[0]
+            elif isintance(criterion, nn.CrossEntropyLoss):
+                # Obtain predicted class
+                top_pred = torch.argmax(y_pred, dim=-1)
+                # Compute accuracy
+                correct = (top_pred == y).sum().cpu()
+                acc = correct / y.size()[0]
 
             # Move tensors back to CPU
             x = x.cpu()
@@ -375,7 +391,7 @@ def inference(
 
     Returns
     -------
-    top_pred: 
+    pred: 
         Predicted class.
     """
     # Activate eval mode
@@ -393,5 +409,12 @@ def inference(
             
         # Move tensors back to CPU
         x = x.cpu()
+        
+    if model.is_binary:
+        # Obtain predicted class
+        pred = (y_pred >= 0).long().item()
+    else:
+        # Obtain predicted class
+        pred = torch.argmax(y_pred, dim=-1).item()
 
-    return torch.argmax(y_pred, dim=-1).item()
+    return pred

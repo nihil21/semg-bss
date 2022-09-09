@@ -42,6 +42,8 @@ class MUAPTClassifierDNN(nn.Module):
         Channel aggregation layer (FC + ReLU).
     _out: nn.Linear
         Output FC layer.
+    _is_binary: bool
+        Whether the MLP has two output classes or not.
     """
 
     def __init__(
@@ -69,6 +71,8 @@ class MUAPTClassifierDNN(nn.Module):
         
         # Output layer
         self._out = nn.Linear(n_ca, n_out)
+        
+        self._is_binary = n_out == 1
     
     def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         # Aggregate along temporal dimension: (n_batch, n_channels, n_samples) -> (n_batch, n_channels, n_ta)
@@ -79,3 +83,7 @@ class MUAPTClassifierDNN(nn.Module):
         x = self._ca(x)
         # Output: (n_batch, n_ca) -> (n_batch, n_out)
         return self._out(x)
+    
+    @property
+    def is_binary(self) -> bool:
+        return self._is_binary

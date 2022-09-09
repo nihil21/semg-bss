@@ -37,6 +37,8 @@ class MUAPTClassifierMLP(nn.Module):
     ----------
     _layers: nn.Sequential
         Sequence of fully connected layers.
+    _is_binary: bool
+        Whether the MLP has two output classes or not.
     """
 
     def __init__(
@@ -60,6 +62,12 @@ class MUAPTClassifierMLP(nn.Module):
             
             layers_dict[f"FC{len(hidden_struct)}"] = nn.Linear(hidden_struct[-1], n_out)  # hidden_last -> output
         self._layers = nn.Sequential(layers_dict)
+        
+        self._is_binary = n_out == 1
     
     def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         return self._layers(x)
+    
+    @property
+    def is_binary(self) -> bool:
+        return self._is_binary
