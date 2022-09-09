@@ -131,7 +131,7 @@ def train(
             # Compute accuracy
             correct = (pred == y).sum().cpu()
             acc = correct / y.size()[0]
-        elif isintance(criterion, nn.CrossEntropyLoss):
+        elif isinstance(criterion, nn.CrossEntropyLoss):
             # Obtain predicted class
             pred = torch.argmax(y_pred, dim=-1)
             # Compute accuracy
@@ -213,7 +213,7 @@ def evaluate(
                 # Compute accuracy
                 correct = (pred == y).sum().cpu()
                 acc = correct / y.size()[0]
-            elif isintance(criterion, nn.CrossEntropyLoss):
+            elif isinstance(criterion, nn.CrossEntropyLoss):
                 # Obtain predicted class
                 top_pred = torch.argmax(y_pred, dim=-1)
                 # Compute accuracy
