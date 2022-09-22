@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 
 
-class MUAPTClassifierDNN(nn.Module):
+class MUAPTClassifierMLPLight(nn.Module):
     """Deep Neural Network to classify MUAPTS with separable layers.
     
     Parameters

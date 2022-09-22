@@ -27,7 +27,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from .mlp import MUAPTClassifierMLP
-from .dnn import MUAPTClassifierDNN
+from .mlp_light import MUAPTClassifierMLPLight
 
 
 def df_to_dense(df: pd.DataFrame, n_mu: int, offset: float, sig_len: float, fs: float) -> np.ndarray:
@@ -60,7 +60,7 @@ def df_to_dense(df: pd.DataFrame, n_mu: int, offset: float, sig_len: float, fs: 
 
 
 def train(
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN,
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight,
     data: DataLoader,
     criterion: nn.CrossEntropyLoss | nn.BCEWithLogitsLoss,
     optimizer: Optimizer,
@@ -71,7 +71,7 @@ def train(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     data: DataLoader
         Instance of DataLoader with the training data.
@@ -154,7 +154,7 @@ def train(
 
 
 def evaluate(
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN,
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight,
     data: DataLoader,
     criterion: nn.CrossEntropyLoss,
     device: torch.device,
@@ -164,7 +164,7 @@ def evaluate(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     data: DataLoader
         Instance of DataLoader with the training data.
@@ -234,7 +234,7 @@ def evaluate(
 
 
 def training_loop(
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN,
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight,
     train_data: DataLoader,
     val_data: DataLoader,
     criterion: nn.CrossEntropyLoss,
@@ -251,7 +251,7 @@ def training_loop(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     train_data: DataLoader
         Instance of DataLoader with the training data.
@@ -374,7 +374,7 @@ def training_loop(
 
 
 def inference(
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN,
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight,
     x: torch.FloatTensor,
     device: torch.device
 ) -> int:
@@ -382,7 +382,7 @@ def inference(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierDNN
+    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     x: torch.FloatTensor
         Input tensor.

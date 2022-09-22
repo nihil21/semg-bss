@@ -13,14 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from .dnn import MUAPTClassifierDNN
 from .mlp import MUAPTClassifierMLP
+from .mlp_light import MUAPTClassifierMLPLight
 from .snn import MUAPTClassifierSNN
 from .utils import df_to_dense, training_loop, inference
 
 __all__ = [
-    "MUAPTClassifierDNN",
     "MUAPTClassifierMLP",
+    "MUAPTClassifierMLPLight",
     "MUAPTClassifierSNN",
     "df_to_dense",
     "training_loop",
