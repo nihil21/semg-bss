@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,22 +31,22 @@ def filter_signal(
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Signal with shape (n_channels, n_samples).
-    fs: float
+    fs : float
         Sampling frequency of the signal.
-    min_freq: float
+    min_freq : float
         Minimum frequency for bandpass filter.
-    max_freq: float
+    max_freq : float
         Maximum frequency for bandpass filter.
-    notch_freqs: tuple[float], default=()
+    notch_freqs : tuple of (float,), default=()
         Tuple of frequencies to attenuate with notch filters (e.g. for powerline noise).
-    order: int, default=5
+    order : int, default=5
         Order of the Butterworth filter.
 
     Returns
     -------
-    x_filt: np.ndarray
+    ndarray
         Filtered signal with shape (n_channels, n_samples).
     """
     assert (
@@ -69,14 +69,14 @@ def extend_signal(x: np.ndarray, f_e: int = 0) -> np.ndarray:
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Signal with shape (n_channels, n_samples).
-    f_e: int, default=0
+    f_e : int, default=0
         Extension factor.
 
     Returns
     -------
-    x_ext: np.ndarray
+    ndarray
         Extended signal with shape (f_e * n_channels, n_samples).
     """
 
@@ -94,14 +94,14 @@ def center_signal(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Signal with shape (n_channels, n_samples).
 
     Returns
     -------
-    x_center: np.ndarray
+    ndarray
         Centered signal with shape (n_channels, n_samples).
-    x_mean: np.ndarray
+    ndarray
         Mean vector of the signal with shape (n_channels,).
     """
 
@@ -116,17 +116,17 @@ def whiten_signal(x: np.ndarray, reg_factor: float = 0.5) -> tuple[np.ndarray, n
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Signal with shape (n_channels, n_samples).
-    reg_factor: float, default=0.5
+    reg_factor : float, default=0.5
         Regularization factor representing the proportion of eigenvalues 
         that are ignored in the computation of the whitening matrix.
 
     Returns
     -------
-    x_white: np.ndarray
+    ndarray
         Whitened signal with shape (n_channels, n_samples).
-    white_mtx: np.ndarray
+    ndarray
         Whitening matrix.
     """
     assert 0 <= reg_factor < 1, "The regularization factor must be in range [0, 1[."

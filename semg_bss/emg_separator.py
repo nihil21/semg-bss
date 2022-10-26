@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,16 +34,16 @@ def _logcosh(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Input data.
 
     Returns
     -------
-    gx: np.ndarray
+    ndarray
         LogCosh output.
-    gx_prime: np.ndarray
+    ndarray
         LogCosh first derivative.
-    gx_sec: np.ndarray
+    ndarray
         LogCosh second derivative.
     """
 
@@ -63,15 +63,17 @@ def _exp(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Input data.
 
     Returns
     -------
-    gx: np.ndarray
+    ndarray
         Exp output.
-    gx_prime: np.ndarray
-        Exp derivative.
+    ndarray
+        Exp first derivative.
+    ndarray
+        Exp second derivative.
     """
 
     gx = -np.exp(-(x ** 2) / 2)
@@ -85,20 +87,22 @@ def _exp(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return gx, gx_prime, gx_sec
 
 
-def _skew(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Skewness function.
+def _cube(x: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Cubic function.
 
     Parameters
     ----------
-    x: np.ndarray
+    x : ndarray
         Input data.
 
     Returns
     -------
-    gx: np.ndarray
+    ndarray
         Cubic output.
-    gx_prime: np.ndarray
-        Cubic derivative.
+    ndarray
+        Cubic first derivative.
+    ndarray
+        Cubic second derivative.
     """
 
     # Compute G
@@ -120,16 +124,16 @@ def _fast_ica_iter(
 
     Parameters
     ----------
-    emg_white: np.ndarray
+    emg_white : ndarray
         Pre-whitened sEMG signal with shape (n_channels, n_samples).
-    wi: np.ndarray
+    wi : ndarray
         Old separation vector with shape (n_channels,).
-    g: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]
-        Contrast function.
+    g : function
+        Contrast function taking as input an array and outputting the result and the 1st and 2nd derivatives.
 
     Returns
     -------
-    wi_new: np.ndarray
+    ndarray
         New separation vector with shape (n_channels,).
     """
     # (n_channels,) @ (n_channels, n_samples) -> (n_samples,)
@@ -145,7 +149,7 @@ def _fast_ica_iter(
 
 
 # Dictionary for contrast functions
-g_dict = {"logcosh": _logcosh, "exp": _exp, "skew": _skew}
+g_dict = {"logcosh": _logcosh, "exp": _exp, "cube": _cube}
 
 
 @dataclass
@@ -162,66 +166,66 @@ class EMGSeparator:
 
     Parameters
     ----------
-    max_sources: int
+    max_sources : int
         Maximum n. of sources that can be extracted.
-    samp_freq: float
+    samp_freq : float
         Sampling frequency of the signal.
-    f_e: int, default=0
+    f_e : int, default=0
         Extension factor for the signal.
-    reg_factor: float, default=0.5
+    reg_factor : float, default=0.5
         Regularization factor for whitening.
-    g_func: str, default="logcosh"
+    g_func : {"logcosh", "exp", "cube"}
         Contrast function for FastICA.
-    conv_th: float, default=1e-4
+    conv_th : float, default=1e-4
         Threshold for convergence.
-    sil_th: float, default=0.9
+    sil_th : float, default=0.9
         Threshold for source acceptance based on the silhouette score.
-    max_iter: int, default=100
+    max_iter : int, default=100
         Maximum n. of iterations.
-    min_spike_distance: float, default=10
+    min_spike_distance : float, default=10
         Minimum distance between two spikes.
-    min_perc: float, default=0.5
+    min_perc : float, default=0.5
         Minimum percentage of common firings for considering two MUs as duplicates.
-    sorting_strategy: str | None, default=None
+    sorting_strategy : {None, "firing-rate", "neg-entropy"}
         Sorting strategy (either "firing-rate", "neg-entropy", or None).
-    momentum: float, default=0.5
+    momentum : float, default=0.5
         Momentum update for whitening matrix and mean vector when recalibrating.
-    seed: Optional[int], default=None
+    seed : int | None, default=None
         Seed for the internal PRNG.
 
     Attributes
     ----------
-    _is_calibrated: bool
+    _is_calibrated : bool
         Whether the instance is calibrated or not.
-    _max_sources: int
+    _max_sources : int
         Maximum n. of sources that can be extracted.
-    _samp_freq: float
+    _samp_freq : float
         Sampling frequency of the signal.
-    _f_e: int
+    _f_e : int
         Extension factor for the signal.
-    _reg_factor: float
+    _reg_factor : float
         Regularization factor for whitening.
-    _g_func: str
+    _g_func : str
         Name of the contrast function.
-    _conv_th: float
+    _conv_th : float
         Threshold for convergence.
-    _sil_th: float
+    _sil_th : float
         Threshold for source acceptance based on the silhouette score.
-    _max_iter: int
+    _max_iter : int
         Maximum n. of iterations.
-    _min_spike_distance: float
+    _min_spike_distance : float
         Minimum distance between two spikes.
-    _min_perc: float
+    _min_perc : float
         Minimum percentage of common firings for considering two MUs as duplicates.
-    _sorting_strategy: str | None
+    _sorting_strategy : {None, "firing-rate", "neg-entropy"}
         Sorting strategy (either "firing-rate", "neg-entropy", or None).
-    _momentum: float
+    _momentum : float
         Momentum update for whitening matrix and mean vector when recalibrating.
-    _prng: np.Generator
+    _prng : Generator
         Actual PRNG.
-    _params: DecompositionParameters
+    _params : DecompositionParameters
         Decomposition parameters learnt during calibration.
-    _n_mu: int
+    _n_mu : int
         Number of extracted MUs.
     """
 
@@ -246,14 +250,15 @@ class EMGSeparator:
         assert g_func in [
             "logcosh",
             "exp",
-            "skew",
-        ], f'Contrast function can be either "logcosh", "exp" or "skew": the provided one was {g_func}.'
+            "cube",
+        ], f'Contrast function can be either "logcosh", "exp" or "cube": the provided one was {g_func}.'
         assert conv_th > 0, "Convergence threshold must be positive."
         assert -1 < sil_th < 1, "SIL threshold must be in the ]-1, 1[ range."
         assert max_iter > 0, "The maximum n. of iterations must be positive."
         assert sorting_strategy is None or sorting_strategy in [
             "firing-rate",
-            "neg-entropy"], f'The sorting strategy can be either "firing-rate", "neg-entropy" or None.'
+            "neg-entropy"
+        ], f'The sorting strategy can be either "firing-rate", "neg-entropy" or None.'
 
         # External parameters
         self._max_sources = max_sources
@@ -293,17 +298,17 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg: np.ndarray
+        emg : ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
-        min_spike_pps: float, default=5
+        min_spike_pps : float, default=5
             Minimum pulses-per-second (pps) for considering a MU valid.
-        max_spike_pps: float, default=250
+        max_spike_pps : float, default=250
             Maximum pulses-per-second (pps) for considering a MU valid.
 
         Returns
         -------
-        firings: pd.DataFrame
-            DataFrame with the firing times of every MU.
+        DataFrame
+            A DataFrame with the firing times of every MU.
         """
         assert not self._is_calibrated, "Instance already calibrated."
 
@@ -346,17 +351,17 @@ class EMGSeparator:
         
         Parameters
         ----------
-        emg: np.ndarray
+        emg : ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
-        min_spike_pps: float, default=5
+        min_spike_pps : float, default=5
             Minimum pulses-per-second (pps) for considering a MU valid.
-        max_spike_pps: float, default=250
+        max_spike_pps : float, default=250
             Maximum pulses-per-second (pps) for considering a MU valid.
 
         Returns
         -------
-        firings: pd.DataFrame
-            DataFrame with the firing times of every MU.
+        DataFrame
+            A DataFrame with the firing times of every MU.
         """
         start = time.time()
 
@@ -399,17 +404,17 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg: np.ndarray
+        emg : ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
-        min_spike_pps: float, default=5
+        min_spike_pps : float, default=5
             Minimum pulses-per-second (pps) for considering a MU valid.
-        max_spike_pps: float, default=250
+        max_spike_pps : float, default=250
             Maximum pulses-per-second (pps) for considering a MU valid.
 
         Returns
         -------
-        firings: pd.DataFrame
-            DataFrame with the firing times of every MU.
+        DataFrame
+            A DataFrame with the firing times of every MU.
         """
         assert self._is_calibrated, "The instance must be calibrated first."
 
@@ -428,12 +433,12 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg: np.ndarray
+        emg : ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
 
         Returns
         -------
-        sources: np.ndarray
+        ndarray
             Sources with shape (n_mu, n_samples).
         """
         assert self._is_calibrated, "The instance must be calibrated first."
@@ -446,12 +451,12 @@ class EMGSeparator:
 
         Parameters
         ----------
-        sources: np.ndarray
+        sources : ndarray
             Source signals with shape (n_mu, n_samples).
 
         Returns
         -------
-        negentropy: np.ndarray
+        ndarray
             Neg-entropy value for each source.
         """
         g = g_dict[self._g_func]
@@ -460,7 +465,8 @@ class EMGSeparator:
         return np.square(np.mean(g_sources, axis=1) - np.mean(g_std, axis=1))
 
     def reset(self) -> None:
-        """Reset the internal state of the EMGSeparator."""
+        """Reset the internal state of the EMGSeparator.
+        """
         self._is_calibrated = False
         self._params = DecompositionParameters()
 
@@ -469,7 +475,7 @@ class EMGSeparator:
         
         Parameters
         ----------
-        filename: str
+        filename : str
             Path to the .pkl file.
         """
         with open(filename, "wb") as f:
@@ -481,12 +487,12 @@ class EMGSeparator:
         
         Parameters
         ----------
-        filename: str
+        filename : str
             Path to the .pkl file.
         
         Returns
         -------
-        obj: EMGSeparator
+        EMGSeparator
             Instance of EMGSeparator.
         """
         with open(filename, "rb") as f:
@@ -498,14 +504,14 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg: np.ndarray
+        emg : ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
-        refine: bool, default=False
+        refine : bool, default=False
             Whether to refine the parameters or not.
 
         Returns
         -------
-        emg_white: np.ndarray
+        ndarray
             Preprocessed sEMG signal with shape (f_e * n_channels, n_samples).
         """
         # 1. Extension
@@ -541,12 +547,12 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg: np.ndarray
+        emg : ndarray
             Raw sEMG signal with shape (n_channels, n_samples).
 
         Returns
         -------
-        emg_white: np.ndarray
+        ndarray
             Preprocessed sEMG signal with shape (f_e * n_channels, n_samples).
         """
         # 1. Extension
@@ -567,9 +573,9 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg_white: np.ndarray
+        emg_white : ndarray
             Pre-whitened sEMG signal with shape (n_channels, n_samples).
-        from_source_idx: int, default=0
+        from_source_idx : int, default=0
             Index of the initial source to estimate (useful for recalibration).
         """
         g = g_dict[self._g_func]
@@ -621,12 +627,12 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg_white: np.ndarray
+        emg_white : ndarray
             Pre-whitened sEMG signal with shape (n_channels, n_samples).
 
         Returns
         -------
-        wi_init_idx: np.ndarray
+        ndarray
             Indices of the whitened data to use as initial estimation of separation vectors.
         """
         emg_sq = np.square(emg_white).sum(axis=0)
@@ -653,18 +659,18 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg_white: np.ndarray
+        emg_white : ndarray
             Pre-whitened sEMG signal with shape (n_channels, n_samples).
-        g: Callable[[np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]]
-            Contrast function.
-        wi_init: np.ndarray
+        g : function
+            Contrast function taking as input an array and outputting the result and the 1st and 2nd derivatives.
+        wi_init : ndarray
             Initial separation vector.
 
         Returns
         -------
-        wi: np.ndarray
+        ndarray
             Separation vector with shape (n_channels,).
-        converged: bool
+        bool
             Whether FastICA converged or not.
         """
         n_channels = emg_white.shape[0]
@@ -711,14 +717,14 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg_white: np.ndarray
+        emg_white : ndarray
             Pre-whitened sEMG signal with shape (n_channels, n_samples).
-        wi: np.ndarray
+        wi : ndarray
             Separation vector with shape (n_channels,).
 
         Returns
         -------
-        wi: np.ndarray
+        ndarray
             Refined separation vector with shape (n_channels,).
         """
         cov = np.inf
@@ -769,20 +775,20 @@ class EMGSeparator:
 
         Parameters
         ----------
-        si: np.ndarray
+        si : ndarray
             Estimated source with shape (n_samples,).
-        compute_cov: bool, default=False
+        compute_cov : bool, default=False
             Whether to compute the Coefficient of Variation (CoV) or not.
-        threshold: float | None, default=None
+        threshold : float | None, default=None
             Threshold for spike/noise classification.
 
         Returns
         -------
-        wi: np.ndarray
+        ndarray
             Refined separation vector with shape (n_channels,).
-        cov: float | None
+        float | None
             Coefficient of Variation of the Inter-Spike Interval.
-        threshold: float | None
+        float | None
             Threshold for spike/noise classification.
         """
         # Find peaks of squared source
@@ -831,12 +837,12 @@ class EMGSeparator:
 
         Parameters
         ----------
-        si: np.ndarray
+        si : ndarray
             Estimated source with shape (n_samples,).
 
         Returns
         -------
-        sil: float
+        float
             SIL measure.
         """
         # Perform k-means on squared source
@@ -864,18 +870,18 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg_white: np.ndarray
+        emg_white : ndarray
             Pre-whitened sEMG signal with shape (n_channels, n_samples).
-        min_n_spikes: int
+        min_n_spikes : int
             Minimum number of spikes to consider a MU as active.
-        max_n_spikes: int
+        max_n_spikes : int
             Maximum number of spikes to consider a MU as active.
-        from_source_idx: int, default=0
+        from_source_idx : int, default=0
             Index of the initial source to estimate (useful for recalibration).
 
         Returns
         -------
-        firings_list: pd.DataFrame
+        DataFrame
             A DataFrame with the firing times of every MU.
         """
         # Step 1: obtain firing times and remove inactive MUs
@@ -971,17 +977,17 @@ class EMGSeparator:
 
         Parameters
         ----------
-        emg_white: np.ndarray
+        emg_white : ndarray
             Pre-whitened sEMG signal with shape (n_channels, n_samples).
-        min_n_spikes: int
+        min_n_spikes : int
             Minimum number of spikes to consider a MU as active.
-        max_n_spikes: int
+        max_n_spikes : int
             Maximum number of spikes to consider a MU as active.
 
         Returns
         -------
-        firings: pd.DataFrame
-            DataFrame with the firing times of every MU.
+        DataFrame
+            A DataFrame with the firing times of every MU.
         """
         _, n_samples = emg_white.shape
 
@@ -1030,16 +1036,16 @@ class EMGSeparator:
         
         Parameters
         ----------
-        firings_dict: dict[int, np.ndarray]
+        firings_dict : dict of {int, ndarray}
             Dictionary containing an array with discharge timings for each MU.
-        sources: np.ndarray
+        sources : ndarray
             Source signal with shape (n_mu, n_samples).
-        from_source_idx: int
+        from_source_idx : int
             Index of the initial source to consider (useful to avoid removing MUs extracted in previous sessions).
 
         Returns
         -------
-        mus_to_remove: list[int]
+        list of int
             List containing the duplicate MUs to remove.
         """
         cur_mu = 0
@@ -1108,18 +1114,18 @@ class EMGSeparator:
 
         Parameters
         ----------
-        firings_ref: np.ndarray
+        firings_ref : ndarray
             Firing times for reference MU.
-        firings_sec: np.ndarray
+        firings_sec : ndarray
             Firing times for secondary MU.
-        time_lock: float
+        time_lock : float
             Maximum number of seconds between two spikes to consider them time-locked.
-        win_len: float, default=0.01
+        win_len : float, default=0.01
             Length of the window for sync calculation (in seconds).
 
         Returns
         -------
-        in_sync: bool
+        bool
             Whether the two MUAPTs are in sync or not.
         """
         sync: list[float] = []

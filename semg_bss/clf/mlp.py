@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,22 +22,22 @@ import torch.nn as nn
 
 
 class MUAPTClassifierMLP(nn.Module):
-    """Multilayer Perceptron to classify MUAPTS.
+    """Multilayer Perceptron to classify MUAPTs.
     
     Parameters
     ----------
-    n_in: int
+    n_in : int
         Number of input neurons.
-    n_out: int
+    n_out : int
         Number of output neurons.
-    hidden_struct: tuple[int, ...]
+    hidden_struct : tuple of (int, ...)
         Tuple containing the number of hidden neurons for each layer.
     
     Attributes
     ----------
-    _layers: nn.Sequential
+    _layers : Sequential
         Sequence of fully connected layers.
-    _is_binary: bool
+    _is_binary : bool
         Whether the MLP has two output classes or not.
     """
 

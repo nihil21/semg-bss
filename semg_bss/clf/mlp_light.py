@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,24 +25,24 @@ class MUAPTClassifierMLPLight(nn.Module):
     
     Parameters
     ----------
-    in_shape: tuple[int, int]
+    in_shape : tuple of (int, int)
         Input shape (n_channels, n_samples).
-    n_ta: int
+    n_ta : int
         Number of neurons in the temporal aggregation layer.
-    n_ca: int
+    n_ca : int
         Number of neurons in the channel aggregation layer.
-    n_out: int
+    n_out : int
         Number of output neurons.
     
     Attributes
     ----------
-    _ta: nn.Sequential
+    _ta : Sequential
         Temporal aggregation layer (FC + ReLU).
-    _ca: nn.Sequential
+    _ca : Sequential
         Channel aggregation layer (FC + ReLU).
-    _out: nn.Linear
+    _out : Linear
         Output FC layer.
-    _is_binary: bool
+    _is_binary : bool
         Whether the MLP has two output classes or not.
     """
 

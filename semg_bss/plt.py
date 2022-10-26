@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,17 +39,17 @@ def plot_signal(
 
     Parameters
     ----------
-    s: np.ndarray
+    s : ndarray
         Signal with shape (n_channels, n_samples).
-    fs: float, default=1
+    fs : float, default=1
         Sampling frequency of the signal.
-    title: str | None, default=None
+    title : str | None, default=None
         Title of the whole plot.
-    labels: list[tuple[int, int, int]] | None, default=None
+    labels : list of tuple of (int, int, int) | None, default=None
         List containing, for each action block, the label of the action together with the first and the last samples.
-    resolution: int | None, default=None
+    resolution : int | None, default=None
         Resolution for the x-axis.
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     n_channels, n_samples = s.shape
@@ -116,13 +116,13 @@ def plot_fft_spectrum(
 
     Parameters
     ----------
-    s: np.ndarray
+    s : ndarray
         Input signal with shape (n_channels, n_samples).
-    fs: float, default=1
+    fs : float, default=1
         Sampling frequency of the signal.
-    title: str | None, default=None
+    title : str | None, default=None
         Title of the whole plot.
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     # Compute FFT spectrum
@@ -162,13 +162,13 @@ def plot_correlation(
 
     Parameters
     ----------
-    array: np.ndarray | list[np.ndarray]
+    array : ndarray | list of ndarray
         Input array (or list of arrays) with shape (n_channels, n_samples).
-    title: str | list[str] | None
+    title : str | list of str | None
         Title (or list of titles) for the plot (or subplots).
-    n_cols: int, default=1
+    n_cols : int, default=1
         Number of columns in the plot.
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     if fig_size is not None:
@@ -260,18 +260,18 @@ def raster_plot(
 
     Parameters
     ----------
-    firings: pd.DataFrame | list[pd.DataFrame]
+    firings : DataFrame | list of DataFrame
         A DataFrame (or a list of DataFrames) with columns "MU index", "Firing time" and "Firing rate"
         describing the firing activity of neurons.
-    sig_span: tuple[float, float] | list[tuple[float, float]]
+    sig_span : tuple of (float, float) | list of tuple of (float, float)
         Start and end of the signal (in seconds).
-    title: str | list[str] | None, default=None
+    title : str | list of str | None, default=None
         Title (or list of titles) for the plot (or subplots).
-    negentropy_hue: bool, default=False
+    negentropy_hue : bool, default=False
         Whether to use the neg-entropy or firing rate (default) for coloring the scatter plot.
-    n_cols: int, default=1
+    n_cols : int, default=1
         Number of columns in the plot.
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     if fig_size is not None:
@@ -315,13 +315,13 @@ def plot_firings_comparison(
 
     Parameters
     ----------
-    firings1: pd.DataFrame
+    firings1 : DataFrame
         A DataFrame with columns "MU index" and "Firing time" describing the firing activity of neurons.
-    firings2: pd.DataFrame
+    firings2 : DataFrame
         A DataFrame with columns "MU index" and "Firing time" describing the firing activity of neurons.
-    sig_span: tuple[float, float] | list[tuple[float, float]]
+    sig_span : tuple of (float, float) | list of tuple of (float, float)
         Start and end of the signal (in seconds).
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     min_n_mu = min(
@@ -371,13 +371,13 @@ def plot_classifier_hist(
     
     Parameters
     ----------
-    history: dict[int, dict[str, list[float]]]
+    history : dict of {int, dict of {str, list of float}}
         Dictionary containing, for each run, another dictionary with the training history.
-    validation: bool, default=False
+    validation : bool, default=False
         Whether to plot the validation history.
-    title: str | None, default=None
+    title : str | None, default=None
         Title of the whole plot.
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     if fig_size:
@@ -464,9 +464,9 @@ def plot_snn_hist(
 
     Parameters
     ----------
-    hist: dict[str, dict[Any, Any]]
+    hist : dict of {str, dict}
         Dictionary containing the SNN training/inference history.
-    fig_size: tuple[int, int] | None, default=None
+    fig_size : tuple of (int, int) | None, default=None
         Height and width of the plot.
     """
     _, ax = plt.subplots(5, 1, figsize=fig_size, sharex="all")

@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,20 +35,20 @@ def df_to_dense(df: pd.DataFrame, n_mu: int, offset: float, sig_len: float, fs: 
     
     Parameters
     ----------
-    df: pd.DataFrame
+    df : DataFrame
         DataFrame with the firing times of every MU.
-    n_mu: int
+    n_mu : int
         Number of total MUs.
-    offset: float
+    offset : float
         Offset of the signal (in seconds).
-    sig_len: float
+    sig_len : float
         Length of the signal (in seconds).
-    fs: float
+    fs : float
         Sampling frequency.
     
     Returns
     -------
-    spikes: np.ndarray
+    ndarray
         Array of spikes with shape (n_mu, sig_len * fs)
     """
     spikes = np.zeros(shape=(n_mu, int(sig_len * fs)), dtype=np.int8)
@@ -71,24 +71,24 @@ def train(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
-    data: DataLoader
+    data : DataLoader
         Instance of DataLoader with the training data.
-    criterion: nn.CrossEntropyLoss | BCEWithLogitsLoss
+    criterion : CrossEntropyLoss | BCEWithLogitsLoss
         Classification loss (i.e. CrossEntropy).
-    optimizer: Optimizer
+    optimizer : Optimizer
         Optimization algorithm to use.
-    device: torch.device
-        Device on which the training will be performed.
-    scaler: GradScaler | None, default=None
+    device : device
+        The device on which the training will be performed.
+    scaler : GradScaler | None, default=None
         Instance of GradScaler to enable AMP.
 
     Returns
     -------
-    loss: float
+    float
         Training loss averaged over all the samples.
-    acc: float
+    float
         Validation accuracy averaged over all the samples.
     """
     loss_tot: float = 0.
@@ -127,23 +127,18 @@ def train(
         
         if isinstance(criterion, nn.BCEWithLogitsLoss):
             # Obtain predicted class
-            pred = (y_pred >= 0).long()
+            pred: torch.LongTensor = (y_pred >= 0).long()
             # Compute accuracy
             correct = (pred == y).sum().cpu()
             acc = correct / y.size()[0]
         elif isinstance(criterion, nn.CrossEntropyLoss):
             # Obtain predicted class
-            pred = torch.argmax(y_pred, dim=-1)
+            top_pred = torch.argmax(y_pred, dim=-1)
             # Compute accuracy
-            correct = (pred == y).sum().cpu()
+            correct = (top_pred == y).sum().cpu()
             acc = correct / y.size()[0]
         else:
             raise NotImplementedError("Only BCEWithLogitsLoss and CrossEntropyLoss are supported.")
-        
-        # Move tensors back to CPU
-        x = x.cpu()
-        y = y.cpu()
-        y_pred = y_pred.cpu()
 
         # Update history
         loss_value = loss.item()
@@ -164,22 +159,22 @@ def evaluate(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
-    data: DataLoader
+    data : DataLoader
         Instance of DataLoader with the training data.
-    criterion: nn.CrossEntropyLoss
+    criterion : CrossEntropyLoss
         Classification loss (i.e. CrossEntropy).
-    device: torch.device
-        Device on which the training will be performed.
-    scaler: GradScaler | None, default=None
+    device : device
+        The device on which the training will be performed.
+    scaler : GradScaler | None, default=None
         Instance of GradScaler to enable AMP.
 
     Returns
     -------
-    loss: float
+    float
         Validation loss averaged over all the samples.
-    acc: float
+    float
         Validation accuracy averaged over all the samples.
     """
     loss_tot: float = 0.
@@ -209,7 +204,7 @@ def evaluate(
             
             if isinstance(criterion, nn.BCEWithLogitsLoss):
                 # Obtain predicted class
-                pred = (y_pred >= 0).long()
+                pred: torch.LongTensor = (y_pred >= 0).long()
                 # Compute accuracy
                 correct = (pred == y).sum().cpu()
                 acc = correct / y.size()[0]
@@ -219,11 +214,8 @@ def evaluate(
                 # Compute accuracy
                 correct = (top_pred == y).sum().cpu()
                 acc = correct / y.size()[0]
-
-            # Move tensors back to CPU
-            x = x.cpu()
-            y = y.cpu()
-            y_pred = y_pred.cpu()
+            else:
+                raise NotImplementedError("Only BCEWithLogitsLoss and CrossEntropyLoss are supported.")
 
             # Update history
             loss_value = loss.item()
@@ -251,34 +243,34 @@ def training_loop(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
-    train_data: DataLoader
+    train_data : DataLoader
         Instance of DataLoader with the training data.
-    val_data: DataLoader
+    val_data : DataLoader
         Instance of DataLoader with the validation data.
-    criterion: nn.CrossEntropyLoss
+    criterion : CrossEntropyLoss
         Classification loss (i.e. CrossEntropy).
-    optimizer: Optimizer
+    optimizer : Optimizer
         Optimization algorithm to use.
-    epochs: int
+    epochs : int
         Number of epochs.
-    device: torch.device
-        Device on which the training will be performed.
-    scaler: GradScaler | None, default=None
+    device : device
+        The device on which the training will be performed.
+    scaler : GradScaler | None, default=None
         Instance of GradScaler to enable AMP.
-    checkpoint_path: str | None, default=None
+    checkpoint_path : str | None, default=None
         Path to the file where the checkpoint will be saved.
-    early_stopping: str | None, default=None
+    early_stopping : str | None, default=None
         Metric to monitor for early stopping (i.e. "val_loss", "val_accuracy" or None to disable it).
-    patience: int, default=5
+    patience : int, default=5
         Maximum number of epochs that early stopping waits when there's no improvement in validation loss.
-    delta: float, default=1e-4
+    delta : float, default=1e-4
         Minimum required improvement for the validation loss.
 
     Returns
     -------
-    hist: dict[str, list[float]]
+    dict of {str, list of float}
         Dictionary containing the training history.
     """
     assert early_stopping is None or early_stopping in ("val_loss", "val_accuracy"), \
@@ -382,16 +374,16 @@ def inference(
 
     Parameters
     ----------
-    model: MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
         Classifier for MUAPTs.
-    x: torch.FloatTensor
+    x : FloatTensor
         Input tensor.
-    device: torch.device
-        Device on which the inference will be performed.
+    device : device
+        The device on which the inference will be performed.
 
     Returns
     -------
-    pred: 
+    int
         Predicted class.
     """
     # Activate eval mode
@@ -406,9 +398,6 @@ def inference(
         
         # Make prediction
         y_pred = model(x)
-            
-        # Move tensors back to CPU
-        x = x.cpu()
         
     if model.is_binary:
         # Obtain predicted class

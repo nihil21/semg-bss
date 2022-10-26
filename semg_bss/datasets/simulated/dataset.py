@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,16 +34,16 @@ def load_simulated(
 
     Parameters
     ----------
-    root: str
+    root : str
         Path to simulated dataset root folder.
-    mvc: int
+    mvc : int
         MVC value (either 10, 30 or 50).
-    snr: int | None, default=None
+    snr : int | None, default=None
         Amount of noise in the bandwidth of 20-500 Hz to add to the signal.
 
     Returns
     -------
-    data: list[tuple[np.ndarray, pd.DataFrame, float]]
+    list of tuple of (ndarray, DataFrame, float)
         List containing the sEMG signal, the ground truth spike trains and the sampling frequency for each simulation.
     """
     assert mvc in [10, 30, 50], "The MVC value type must be either 10, 30 or 50."

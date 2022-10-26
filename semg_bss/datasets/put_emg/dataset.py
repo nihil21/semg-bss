@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,20 +34,20 @@ def load_put_emg(
 
     Parameters
     ----------
-    root: str
+    root : str
         Path to putEMG dataset root folder.
-    subject: int
+    subject : int
         Subject id.
-    session: int
+    session : int
         Session id.
-    task_type: str
-        Task type ("repeats_long", "repeats_short" or "sequential").
+    task_type : {"repeats_long", "repeats_short", "sequential"}
+        Task type.
 
     Returns
     -------
-    emg: np.ndarray
+    ndarray
         Array containing the sEMG signal for the given subject, session, and task type.
-    labels: list[tuple[str, int, int]]
+    list of tuple of (str, int, int)
         List containing, for each action block, the label of the action together with the first and the last samples.
     """
 
@@ -108,20 +108,20 @@ def down_sample(
 
     Parameters
     ----------
-    emg: np.ndarray
+    emg : ndarray
         EMG signal with shape (n_channels, n_samples).
-    labels: list[tuple[str, int, int]]
+    labels : list of tuple of (str, int, int)
         List containing, for each action block, the label of the action together with the first and the last samples.
-    old_fs: int
+    old_fs : int
         Original sampling frequency of the signal.
-    new_fs: int
+    new_fs : int
         New sampling frequency.
 
     Returns
     -------
-    emg_down: np.ndarray
+    ndarray
         Down-sampled EMG signal with shape (n_channels, n_samples).
-    labels_down: list[tuple[str, int, int]]
+    list of tuple of (str, int, int)
         List containing, for each action block, the label of the action
         together with the (down-sampled) first and the last samples.
     """

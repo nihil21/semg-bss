@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,26 +33,26 @@ def load_pr(
 
     Parameters
     ----------
-    root: str
+    root : str
         Path to Hyser dataset root folder.
-    gesture: int,
+    gesture : int,
         Gesture id.
-    subject: int
+    subject : int
         Subject id.
-    session: int
+    session : int
         Session id.
-    trial: int
+    trial : int
         Trial id.
-    task: int
+    task : int
         Task id.
-    task_type: str
-        Task type ("maintenance" or "dynamic").
-    sig_type: str
-        Signal type ("raw", "preprocess" or "force").
+    task_type : {"maintenance", "dynamic"}
+        Task type.
+    sig_type : {"raw", "preprocess", "force"}
+        Signal type.
 
     Returns
     -------
-    data: np.ndarray
+    ndarray
         Array containing the sEMG signal for the given gesture, subject, session, trial and task.
     """
 
@@ -84,22 +84,22 @@ def load_1dof(
 
     Parameters
     ----------
-    root: str
+    root : str
         Path to Hyser dataset root folder.
-    subject: int
+    subject : int
         Subject id.
-    session: int
+    session : int
         Session id.
-    task: int
+    task : int
         Task id.
-    trial: int
+    trial : int
         Trial id.
-    sig_type: str, default="raw"
-        Signal type ("raw", "preprocess" or "force").
+    sig_type : {"raw", "preprocess", "force"}
+        Signal type.
 
     Returns
     -------
-    data: np.ndarray
+    ndarray
         Array containing the sEMG signal for each finger and trial.
     """
 
@@ -132,22 +132,22 @@ def load_mvc(
 
     Parameters
     ----------
-    root: str
+    root : str
         Path to Hyser dataset root folder.
-    subject: int
+    subject : int
         Subject id.
-    session: int
+    session : int
         Session id.
-    task: int
+    task : int
         Task id.
-    direction: str
-        Direction of the movement ("extension" or "flexion").
-    sig_type: str, default="raw"
-        Signal type ("raw", "preprocess" or "force").
+    direction : {"extension", "flexion"}
+        Direction of the movement.
+    sig_type : {"raw", "preprocess", "force"}
+        Signal type.
 
     Returns
     -------
-    data: np.ndarray
+    ndarray
         Dictionary containing the sEMG signal for each finger.
     """
 
@@ -184,22 +184,22 @@ def load_ndof(
 
     Parameters
     ----------
-    root: str
+    root : str
         Path to Hyser dataset root folder.
-    subject: int
+    subject : int
         Subject id.
-    session: int
+    session : int
         Session id.
-    combination: int
+    combination : int
         Combination id.
-    trial: int
+    trial : int
         Trial id.
-    sig_type: str, default="raw"
-        Signal type ("raw", "preprocess" or "force").
+    sig_type : {"raw", "preprocess", "force"}
+        Signal type.
 
     Returns
     -------
-    data: np.ndarray
+    ndarray
         Array containing the sEMG signal for each finger and trial.
     """
 
