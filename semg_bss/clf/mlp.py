@@ -30,7 +30,7 @@ class MUAPTClassifierMLP(nn.Module):
         Number of input neurons.
     n_out : int
         Number of output neurons.
-    hidden_struct : tuple of (int, ...)
+    hidden_struct : tuple of (int,)
         Tuple containing the number of hidden neurons for each layer.
     
     Attributes
