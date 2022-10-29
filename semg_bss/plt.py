@@ -49,7 +49,7 @@ def plot_signal(
         List containing, for each action block, the label of the action together with the first and the last samples.
     resolution : int | None, default=None
         Resolution for the x-axis.
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     n_channels, n_samples = s.shape
@@ -120,9 +120,9 @@ def plot_fft_spectrum(
         Input signal with shape (n_channels, n_samples).
     fs : float, default=1
         Sampling frequency of the signal.
-    title : str | None, default=None
+    title : str or None, default=None
         Title of the whole plot.
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     # Compute FFT spectrum
@@ -162,13 +162,13 @@ def plot_correlation(
 
     Parameters
     ----------
-    array : ndarray | list of ndarray
+    array : ndarray or list of ndarray
         Input array (or list of arrays) with shape (n_channels, n_samples).
-    title : str | list of str | None
+    title : str or list of str or None
         Title (or list of titles) for the plot (or subplots).
     n_cols : int, default=1
         Number of columns in the plot.
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     if fig_size is not None:
@@ -260,18 +260,18 @@ def raster_plot(
 
     Parameters
     ----------
-    firings : DataFrame | list of DataFrame
+    firings : DataFrame or list of DataFrame
         A DataFrame (or a list of DataFrames) with columns "MU index", "Firing time" and "Firing rate"
         describing the firing activity of neurons.
-    sig_span : tuple of (float, float) | list of tuple of (float, float)
+    sig_span : tuple of (float, float) or list of tuple of (float, float)
         Start and end of the signal (in seconds).
-    title : str | list of str | None, default=None
+    title : str or list of str or None, default=None
         Title (or list of titles) for the plot (or subplots).
     negentropy_hue : bool, default=False
         Whether to use the neg-entropy or firing rate (default) for coloring the scatter plot.
     n_cols : int, default=1
         Number of columns in the plot.
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     if fig_size is not None:
@@ -319,9 +319,9 @@ def plot_firings_comparison(
         A DataFrame with columns "MU index" and "Firing time" describing the firing activity of neurons.
     firings2 : DataFrame
         A DataFrame with columns "MU index" and "Firing time" describing the firing activity of neurons.
-    sig_span : tuple of (float, float) | list of tuple of (float, float)
+    sig_span : tuple of (float, float) or list of tuple of (float, float)
         Start and end of the signal (in seconds).
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     min_n_mu = min(
@@ -375,9 +375,9 @@ def plot_classifier_hist(
         Dictionary containing, for each run, another dictionary with the training history.
     validation : bool, default=False
         Whether to plot the validation history.
-    title : str | None, default=None
+    title : str or None, default=None
         Title of the whole plot.
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     if fig_size:
@@ -466,7 +466,7 @@ def plot_snn_hist(
     ----------
     hist : dict of {str, dict}
         Dictionary containing the SNN training/inference history.
-    fig_size : tuple of (int, int) | None, default=None
+    fig_size : tuple of (int, int) or None, default=None
         Height and width of the plot.
     """
     _, ax = plt.subplots(5, 1, figsize=fig_size, sharex="all")

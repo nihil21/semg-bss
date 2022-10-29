@@ -190,7 +190,7 @@ class EMGSeparator:
         Sorting strategy (either "firing-rate", "neg-entropy", or None).
     momentum : float, default=0.5
         Momentum update for whitening matrix and mean vector when recalibrating.
-    seed : int | None, default=None
+    seed : int or None, default=None
         Seed for the internal PRNG.
 
     Attributes
@@ -779,16 +779,16 @@ class EMGSeparator:
             Estimated source with shape (n_samples,).
         compute_cov : bool, default=False
             Whether to compute the Coefficient of Variation (CoV) or not.
-        threshold : float | None, default=None
+        threshold : float or None, default=None
             Threshold for spike/noise classification.
 
         Returns
         -------
         ndarray
             Refined separation vector with shape (n_channels,).
-        float | None
+        float or None
             Coefficient of Variation of the Inter-Spike Interval.
-        float | None
+        float or None
             Threshold for spike/noise classification.
         """
         # Find peaks of squared source

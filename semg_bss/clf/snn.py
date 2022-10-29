@@ -50,106 +50,106 @@ class MUAPTClassifierSNN:
 
     Parameters
     ----------
-    n_inp: int
+    n_inp : int
         Number of input neurons.
-    n_pool: int
+    n_pool : int
         Number of neurons in the pool.
-    classes: list[str]
+    classes : list of str
         List of classes to recognize.
-    v_rest_e: float, default=-70.
+    v_rest_e : float, default=-70.
         Rest membrane potential for excitatory neurons (in mV).
-    v_rest_i: float, default=-70.
+    v_rest_i : float, default=-70.
         Rest membrane potential for inhibitory neurons (in mV).
-    v_reset_e: float, default=-60.
+    v_reset_e : float, default=-60.
         Membrane potential after reset for excitatory neurons (in mV).
-    v_reset_i: float, default=-60.
+    v_reset_i : float, default=-60.
         Membrane potential after reset for inhibitory neurons (in mV).
-    v_thres_e: float, default=-54.
+    v_thres_e : float, default=-54.
         Threshold membrane potential of excitatory neurons (in mV).
-    v_thres_i: float, default=-54.
+    v_thres_i : float, default=-54.
         Threshold membrane potential of inhibitory neurons (in mV).
-    refrac_e: float, default=5.
+    refrac_e : float, default=5.
         Refractory period of excitatory neurons (in ms).
-    refrac_i: float, default=5.
+    refrac_i : float, default=5.
         Refractory period of inhibitory neurons (in ms).
-    w_max: float, default=0.015
+    w_max : float, default=0.015
         Maximum synaptic conductance (adimensional).
-    v_exc: float, default=0.
+    v_exc : float, default=0.
         Equilibrium potential of excitatory synapses (in mV).
-    v_inh: float, default=-70.
+    v_inh : float, default=-70.
         Equilibrium potential of inhibitory synapses (in mV).
-    tau_exc: float, default=20.
+    tau_exc : float, default=20.
         Time constant of membrane potential for excitatory neurons (in ms).
-    tau_inh: float, default=20.
+    tau_inh : float, default=20.
         Time constant of membrane potential for inhibitory neurons (in ms).
-    tau_ge: float, default=5.
+    tau_ge : float, default=5.
         Time constant of conductance for excitatory synapses (in ms).
-    tau_gi: float, default=5.
+    tau_gi : float, default=5.
         Time constant of conductance for inhibitory synapses (in ms).
-    tau_pre: float, default=20.
+    tau_pre : float, default=20.
         Time constant of pre-synaptic trace (in ms).
-    tau_post: float, default=20.
+    tau_post : float, default=20.
         Time constant of post-synaptic trace (in ms).
-    max_pot: float, default=0.005
+    max_pot : float, default=0.005
         Maximum potentiation (adimensional).
-    b_a: float, default=1.05
+    b_a : float, default=1.05
         Ratio between maximum depression and maximum potentiation.
 
     Attributes
     ----------
-    _n_inp: int
+    _n_inp : int
         Number of input neurons.
-    _n_pool: int
+    _n_pool : int
         Number of neurons in the pool.
-    _classes: list[str]
+    _classes : list of str
         List of classes to recognize.
-    _v_rest_e: float
+    _v_rest_e : float
         Rest membrane potential for excitatory neurons (in mV).
-    _v_rest_i: float
+    _v_rest_i : float
         Rest membrane potential for inhibitory neurons (in mV).
-    _v_reset_e: float
+    _v_reset_e : float
         Membrane potential after reset for excitatory neurons (in mV).
-    _v_reset_i: float
+    _v_reset_i : float
         Membrane potential after reset for inhibitory neurons (in mV).
-    _v_thres_e: float
+    _v_thres_e : float
         Threshold membrane potential of excitatory neurons (in mV).
-    _v_thres_i: float
+    _v_thres_i : float
         Threshold membrane potential of inhibitory neurons (in mV).
-    _refrac_e: float
+    _refrac_e : float
         Refractory period of excitatory neurons (in ms).
-    _refrac_i: float
+    _refrac_i : float
         Refractory period of inhibitory neurons (in ms).
-    _w_max: float
+    _w_max : float
         Maximum synaptic conductance (adimensional).
-    _v_exc: float
+    _v_exc : float
         Equilibrium potential of excitatory synapses (in mV).
-    _v_inh: float
+    _v_inh : float
         Equilibrium potential of inhibitory synapses (in mV).
-    _tau_exc: float
+    _tau_exc : float
         Time constant of membrane potential for excitatory neurons (in ms).
-    _tau_inh: float
+    _tau_inh : float
         Time constant of membrane potential for inhibitory neurons (in ms).
-    _tau_ge: float
+    _tau_ge : float
         Time constant of conductance for excitatory synapses (in ms).
-    _tau_gi: float
+    _tau_gi : float
         Time constant of conductance for inhibitory synapses (in ms).
-    _tau_pre: float
+    _tau_pre : float
         Time constant of pre-synaptic trace (in ms).
-    _tau_post: float
+    _tau_post : float
         Time constant of post-synaptic trace (in ms).
-    _max_pot: float
+    _max_pot : float
         Maximum potentiation (adimensional).
-    _max_dep: float
+    _max_dep : float
         Maximum depression (adimensional).
-    _weights_inp2exc: np.ndarray | None
+    _weights_inp2exc : ndarray or None
         Weights between input and excitatory neurons.
-    _weights_exc2inh: np.ndarray | None
+    _weights_exc2inh : ndarray or None
         Weights between excitatory and inhibitory neurons.
-    _weights_inh2exc: np.ndarray | None
+    _weights_inh2exc : ndarray or None
         Weights between inhibitory and excitatory neurons.
-    _delays_inp2exc: np.ndarray | None
+    _delays_inp2exc : ndarray or None
         Delays of the excitatory synapses.
-    _readout: dict[int, str]
+    _readout : dict of {int, str}
         Dictionary representing the association between output neuron and gesture.
     """
 
@@ -227,14 +227,14 @@ class MUAPTClassifierSNN:
 
         Parameters
         ----------
-        firings_train: list[tuple[pd.DataFrame, str, float]]
+        firings_train : list of tuple of (DataFrame, str, float)
             List of tuples containing the firings of MUs, the label of the gesture and the duration (in seconds).
-        epochs: int, default=1
+        epochs : int, default=1
             Number of epochs.
 
         Returns
         -------
-        hist: dict[str, dict[Any, Any]]
+        dict of {str, dict}
             Dictionary containing the SNN training/inference history.
         """
         # Build fixed SNN
@@ -406,12 +406,12 @@ class MUAPTClassifierSNN:
 
         Parameters
         ----------
-        firings_test_sample: list[tuple[pd.DataFrame, int, float]]
+        firings_test_sample : list of tuple of (DataFrame, int, float)
             Tuple containing the firings of MUs, the label of the gesture and the duration (in seconds).
 
         Returns
         -------
-        class_pred: str | None
+        str or None
             Predicted class label.
         """
         firings_test_x, firings_test_y, duration = firings_test_sample
@@ -456,16 +456,16 @@ class MUAPTClassifierSNN:
 
         Parameters
         ----------
-        plastic: bool, default=True
+        plastic : bool, default=True
             Whether to make the synapses plastic or fixed.
 
         Returns
         -------
-        neuron_groups: dict[str, b2.SpikeGeneratorGroup | b2.NeuronGroup]
+        dict of {str, SpikeGeneratorGroup or NeuronGroup}
             Dictionary containing neuron groups.
-        synapses: dict[str, b2.Synapses]
+        dict of {str, Synapses}
             Dictionary containing synapses.
-        monitors: dict[str, b2.SpikeMonitor]
+        dict of {str, SpikeMonitor}
             Dictionary containing monitors.
         """
         # Define equations for neurons

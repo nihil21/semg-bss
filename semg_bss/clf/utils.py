@@ -71,17 +71,17 @@ def train(
 
     Parameters
     ----------
-    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP or MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     data : DataLoader
         Instance of DataLoader with the training data.
-    criterion : CrossEntropyLoss | BCEWithLogitsLoss
+    criterion : CrossEntropyLoss or BCEWithLogitsLoss
         Classification loss (i.e. CrossEntropy).
     optimizer : Optimizer
         Optimization algorithm to use.
     device : device
         The device on which the training will be performed.
-    scaler : GradScaler | None, default=None
+    scaler : GradScaler or None, default=None
         Instance of GradScaler to enable AMP.
 
     Returns
@@ -159,7 +159,7 @@ def evaluate(
 
     Parameters
     ----------
-    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP or MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     data : DataLoader
         Instance of DataLoader with the training data.
@@ -167,7 +167,7 @@ def evaluate(
         Classification loss (i.e. CrossEntropy).
     device : device
         The device on which the training will be performed.
-    scaler : GradScaler | None, default=None
+    scaler : GradScaler or None, default=None
         Instance of GradScaler to enable AMP.
 
     Returns
@@ -243,7 +243,7 @@ def training_loop(
 
     Parameters
     ----------
-    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP or MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     train_data : DataLoader
         Instance of DataLoader with the training data.
@@ -257,11 +257,11 @@ def training_loop(
         Number of epochs.
     device : device
         The device on which the training will be performed.
-    scaler : GradScaler | None, default=None
+    scaler : GradScaler or None, default=None
         Instance of GradScaler to enable AMP.
-    checkpoint_path : str | None, default=None
+    checkpoint_path : str or None, default=None
         Path to the file where the checkpoint will be saved.
-    early_stopping : str | None, default=None
+    early_stopping : str or None, default=None
         Metric to monitor for early stopping (i.e. "val_loss", "val_accuracy" or None to disable it).
     patience : int, default=5
         Maximum number of epochs that early stopping waits when there's no improvement in validation loss.
@@ -374,7 +374,7 @@ def inference(
 
     Parameters
     ----------
-    model : MUAPTClassifierMLP | MUAPTClassifierMLPLight
+    model : MUAPTClassifierMLP or MUAPTClassifierMLPLight
         Classifier for MUAPTs.
     x : FloatTensor
         Input tensor.

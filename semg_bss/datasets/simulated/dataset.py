@@ -38,7 +38,7 @@ def load_simulated(
         Path to simulated dataset root folder.
     mvc : int
         MVC value (either 10, 30 or 50).
-    snr : int | None, default=None
+    snr : int or None, default=None
         Amount of noise in the bandwidth of 20-500 Hz to add to the signal.
 
     Returns
