@@ -13,8 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import imp
-from sympy import im
 from .dataset import load_biowolf
 
 __all__ = ["load_biowolf"]
