@@ -14,7 +14,6 @@ limitations under the License.
 """
 
 from __future__ import annotations
-from turtle import st
 
 import torch
 import torch.nn as nn

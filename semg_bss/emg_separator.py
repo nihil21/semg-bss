@@ -896,9 +896,7 @@ class EMGSeparator:
         valid_count = 0
         for i in range(n_sources):
             # Detect spikes
-            spike_loc, _, spike_th = self._detect_spikes(
-                si=sources[i]  # , threshold=self._params.spike_th[i]
-            )
+            spike_loc, _, spike_th = self._detect_spikes(si=sources[i])
             if i < from_source_idx:  # recalibration
                 firings_dict[valid_count] = spike_loc / self._samp_freq
                 valid_count += 1
