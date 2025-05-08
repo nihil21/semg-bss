@@ -98,7 +98,7 @@ def main():
         valid_n_mu_list = []
         tot_n_mu_list = []
         s = 0
-        for emg, gt_firings, fs_emg in semg_bss.simulated.load_simulated(DATA_DIR, mvc=mvc):  # , snr=snr):
+        for emg, gt_firings, fs_emg in semg_bss.datasets.simulated.load_simulated(DATA_DIR, mvc=mvc):  # , snr=snr):
             # Filter signal with 20-500 Hz band-pass filter
             emg = semg_bss.preprocessing.filter_signal(
                 emg,
